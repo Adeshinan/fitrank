@@ -1,0 +1,35 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tests and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Tool caches
+.mypy_cache/
+.ruff_cache/
+
+# FitRank run outputs
+runs/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
