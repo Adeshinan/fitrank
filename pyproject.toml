@@ -66,6 +66,9 @@ path = "src/fitrank/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/fitrank"]
 
+[tool.hatch.build.targets.sdist]
+include = ["src/fitrank", "tests", "README.md", "LICENSE", "pyproject.toml"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
