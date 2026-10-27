@@ -45,6 +45,8 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.10",
     "pre-commit>=3.7",
+    "openpyxl>=3.1",   # test the Excel reader
+    "pyarrow>=14.0",   # test the Parquet reader
     "pandas-stubs",
     "types-PyYAML",
     "build",

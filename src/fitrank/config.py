@@ -5,6 +5,7 @@ preprocessing step and metric names are checked against their registries
 when the pipelines are built.
 """
 
+from collections.abc import Collection, Mapping
 from pathlib import Path
 from typing import Annotated, Any, Literal, get_args, get_origin
 
@@ -58,6 +59,11 @@ def _check_step(value: Any) -> Any:
 
 # A preprocessing step or a reduction: `none`, `scaler: standard`, `pca: {n_components: [5]}`.
 Step = Annotated[str | dict[str, Any], BeforeValidator(_check_step)]
+
+
+def step_name(step: str | dict[str, Any]) -> str:
+    """Return the name of a step: ``imputer`` for ``{imputer: {strategy: median}}``."""
+    return step if isinstance(step, str) else next(iter(step))
 
 
 class _Section(BaseModel):
@@ -163,6 +169,33 @@ def load_config(path: str | Path) -> FitRankConfig:
     except ValidationError as exc:
         details = [_describe(error) for error in exc.errors(include_url=False)]
         raise ConfigError(f"invalid configuration in {source}", details) from None
+
+
+def check_models(config: FitRankConfig, available: Mapping[str, Collection[str]]) -> None:
+    """Check that every declared model exists for the declared task.
+
+    ``available`` maps each task to the names of its models (from the model
+    registry).
+
+    Raises:
+        ConfigError: a model is unknown, or only exists for the other task.
+    """
+    allowed = available.get(config.task, ())
+    choices = f"available for {config.task}: {', '.join(sorted(allowed)) or 'none'}"
+    problems = []
+    for i, model in enumerate(config.models):
+        if model.name in allowed:
+            continue
+        other = [task for task, names in available.items() if model.name in names]
+        if other:
+            problems.append(
+                f"models[{i}].name: {model.name!r} is a {other[0]} model,"
+                f" but task is {config.task!r} ({choices})"
+            )
+        else:
+            problems.append(f"models[{i}].name: unknown model {model.name!r} ({choices})")
+    if problems:
+        raise ConfigError(f"some models cannot be used for {config.task}", problems)
 
 
 def _describe_yaml_error(exc: yaml.YAMLError) -> str:
