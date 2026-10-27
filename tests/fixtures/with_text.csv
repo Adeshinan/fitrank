@@ -1,0 +1,11 @@
+Age,Sex,Embarked,Survived
+22,male,S,0
+38,female,C,1
+26,female,S,1
+35,female,S,1
+35,male,S,0
+54,male,S,0
+2,male,S,0
+27,female,S,1
+14,female,C,1
+4,female,,1

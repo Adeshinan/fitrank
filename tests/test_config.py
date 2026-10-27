@@ -5,7 +5,7 @@ from textwrap import dedent
 
 import pytest
 
-from fitrank.config import FitRankConfig, load_config
+from fitrank.config import FitRankConfig, check_models, load_config, step_name
 from fitrank.exceptions import ConfigError, FitRankError
 
 MINIMAL = """
@@ -421,3 +421,59 @@ def test_config_error_is_a_fitrank_error() -> None:
     assert issubclass(ConfigError, FitRankError)
     assert ConfigError("bad", ["a", "b"]).details == ["a", "b"]
     assert str(ConfigError("bad")) == "bad"
+
+
+# --- Models and task (checked against the model registry) ------------------------------------
+
+# Stands in for the model registry until day 4.
+AVAILABLE = {
+    "classification": ["logistic_regression", "random_forest", "svm"],
+    "regression": ["linear_regression", "random_forest", "ridge"],
+}
+
+
+def models_config(task: str, *names: str) -> FitRankConfig:
+    return FitRankConfig.model_validate({
+        "data": {"path": "data.csv", "target": "y"},
+        "task": task,
+        "models": [{"name": name} for name in names],
+    })  # fmt: skip
+
+
+def test_models_available_for_the_task_pass() -> None:
+    check_models(models_config("regression", "ridge", "random_forest"), AVAILABLE)
+
+
+def test_model_of_the_other_task_is_refused() -> None:
+    with pytest.raises(ConfigError) as info:
+        check_models(models_config("regression", "ridge", "logistic_regression"), AVAILABLE)
+    assert str(info.value) == (
+        "some models cannot be used for regression\n"
+        "  -> models[1].name: 'logistic_regression' is a classification model,"
+        " but task is 'regression'"
+        " (available for regression: linear_regression, random_forest, ridge)"
+    )
+
+
+def test_unknown_model_is_refused() -> None:
+    with pytest.raises(ConfigError) as info:
+        check_models(models_config("classification", "randomforest", "svm"), AVAILABLE)
+    assert info.value.details == [
+        "models[0].name: unknown model 'randomforest'"
+        " (available for classification: logistic_regression, random_forest, svm)"
+    ]
+
+
+def test_task_without_models_says_none() -> None:
+    with pytest.raises(ConfigError, match=r"available for regression: none"):
+        check_models(models_config("regression", "ridge"), {"classification": ["svm"]})
+
+
+def test_step_name() -> None:
+    assert step_name("none") == "none"
+    assert step_name({"pca": {"n_components": [5]}}) == "pca"
+
+
+def test_hint_is_indented_under_the_details() -> None:
+    error = ConfigError("bad", ["a"], hint="first\nsecond")
+    assert str(error) == "bad\n  -> a\n  Hint: first\n        second"
