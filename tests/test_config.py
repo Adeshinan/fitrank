@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from textwrap import dedent
+from typing import Any
 
 import pytest
 
@@ -425,48 +426,60 @@ def test_config_error_is_a_fitrank_error() -> None:
 
 # --- Models and task (checked against the model registry) ------------------------------------
 
-# Stands in for the model registry until day 4.
-AVAILABLE = {
-    "classification": ["logistic_regression", "random_forest", "svm"],
-    "regression": ["linear_regression", "random_forest", "ridge"],
-}
+CLASSIFIERS = (
+    "decision_tree, gradient_boosting, knn, logistic_regression, naive_bayes, random_forest, svm"
+)
+REGRESSORS = (
+    "decision_tree, gradient_boosting, knn, lasso, linear_regression, polynomial_regression,"
+    " random_forest, ridge, svr"
+)
 
 
-def models_config(task: str, *names: str) -> FitRankConfig:
+def models_config(task: str, *models: str | dict[str, Any]) -> FitRankConfig:
     return FitRankConfig.model_validate({
         "data": {"path": "data.csv", "target": "y"},
         "task": task,
-        "models": [{"name": name} for name in names],
+        "models": [{"name": m} if isinstance(m, str) else m for m in models],
     })  # fmt: skip
 
 
 def test_models_available_for_the_task_pass() -> None:
-    check_models(models_config("regression", "ridge", "random_forest"), AVAILABLE)
+    check_models(models_config("regression", "ridge", "random_forest", "polynomial_regression"))
 
 
 def test_model_of_the_other_task_is_refused() -> None:
     with pytest.raises(ConfigError) as info:
-        check_models(models_config("regression", "ridge", "logistic_regression"), AVAILABLE)
+        check_models(models_config("regression", "ridge", "logistic_regression"))
     assert str(info.value) == (
         "some models cannot be used for regression\n"
         "  -> models[1].name: 'logistic_regression' is a classification model,"
-        " but task is 'regression'"
-        " (available for regression: linear_regression, random_forest, ridge)"
+        f" but task is 'regression' (available for regression: {REGRESSORS})"
     )
 
 
-def test_unknown_model_is_refused() -> None:
+def test_unknown_model_is_refused_with_a_suggestion() -> None:
     with pytest.raises(ConfigError) as info:
-        check_models(models_config("classification", "randomforest", "svm"), AVAILABLE)
+        check_models(models_config("classification", "random_forrest", "svm"))
     assert info.value.details == [
-        "models[0].name: unknown model 'randomforest'"
-        " (available for classification: logistic_regression, random_forest, svm)"
+        "models[0].name: unknown model 'random_forrest'"
+        f" (did you mean 'random_forest'? available for classification: {CLASSIFIERS})"
     ]
 
 
-def test_task_without_models_says_none() -> None:
-    with pytest.raises(ConfigError, match=r"available for regression: none"):
-        check_models(models_config("regression", "ridge"), {"classification": ["svm"]})
+def test_valid_params_pass() -> None:
+    params = {"poly__degree": [2], "linear__fit_intercept": [True]}
+    check_models(models_config("regression", {"name": "polynomial_regression", "params": params}))
+
+
+def test_unknown_param_is_refused_with_a_suggestion() -> None:
+    model = {"name": "random_forest", "params": {"n_estimator": [100], "max_depth": [5]}}
+    with pytest.raises(ConfigError) as info:
+        check_models(models_config("classification", model))
+    (detail,) = info.value.details
+    assert detail.startswith(
+        "models[0].params.n_estimator: unknown parameter for random_forest"
+        " (did you mean 'n_estimators'? allowed: bootstrap, ccp_alpha,"
+    )
 
 
 def test_step_name() -> None:

@@ -5,7 +5,7 @@ preprocessing step and metric names are checked against their registries
 when the pipelines are built.
 """
 
-from collections.abc import Collection, Mapping
+import difflib
 from pathlib import Path
 from typing import Annotated, Any, Literal, get_args, get_origin
 
@@ -14,6 +14,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationEr
 from pydantic_core import ErrorDetails
 
 from fitrank.exceptions import ConfigError
+from fitrank.registry import TASKS, Task, get_model, list_models
 
 Loc = tuple[int | str, ...]
 
@@ -123,7 +124,7 @@ class OutputConfig(_Section):
 class FitRankConfig(_Section):
     project: ProjectConfig = ProjectConfig()
     data: DataConfig
-    task: Literal["classification", "regression"]
+    task: Task
     preprocessing: dict[str, PreprocessingGroup] = {}
     reduction: list[Step] = Field(default=["none"], min_length=1)
     models: list[ModelConfig] = Field(min_length=1)
@@ -171,29 +172,40 @@ def load_config(path: str | Path) -> FitRankConfig:
         raise ConfigError(f"invalid configuration in {source}", details) from None
 
 
-def check_models(config: FitRankConfig, available: Mapping[str, Collection[str]]) -> None:
-    """Check that every declared model exists for the declared task.
-
-    ``available`` maps each task to the names of its models (from the model
-    registry).
+def check_models(config: FitRankConfig) -> None:
+    """Check every declared model against the model registry.
 
     Raises:
-        ConfigError: a model is unknown, or only exists for the other task.
+        ConfigError: a model is unknown, only exists for the other task, or
+            ``params`` names a parameter the model does not have.
     """
-    allowed = available.get(config.task, ())
-    choices = f"available for {config.task}: {', '.join(sorted(allowed)) or 'none'}"
+    allowed = list_models(config.task)
+    choices = f"available for {config.task}: {', '.join(allowed) or 'none'}"
     problems = []
     for i, model in enumerate(config.models):
-        if model.name in allowed:
+        if model.name not in allowed:
+            other = [task for task in TASKS if model.name in list_models(task)]
+            if other:
+                problems.append(
+                    f"models[{i}].name: {model.name!r} is a {other[0]} model,"
+                    f" but task is {config.task!r} ({choices})"
+                )
+            else:
+                close = difflib.get_close_matches(model.name, allowed, n=1)
+                hint = f"did you mean {close[0]!r}? " if close else ""
+                problems.append(f"models[{i}].name: unknown model {model.name!r} ({hint}{choices})")
             continue
-        other = [task for task, names in available.items() if model.name in names]
-        if other:
-            problems.append(
-                f"models[{i}].name: {model.name!r} is a {other[0]} model,"
-                f" but task is {config.task!r} ({choices})"
-            )
-        else:
-            problems.append(f"models[{i}].name: unknown model {model.name!r} ({choices})")
+        if model.params:
+            estimator, _ = get_model(model.name, config.task).factory()
+            known = sorted(estimator.get_params())
+            for key in model.params:
+                if key not in known:
+                    close = difflib.get_close_matches(key, known, n=1)
+                    hint = f"did you mean {close[0]!r}? " if close else ""
+                    problems.append(
+                        f"models[{i}].params.{key}: unknown parameter for {model.name}"
+                        f" ({hint}allowed: {', '.join(known)})"
+                    )
     if problems:
         raise ConfigError(f"some models cannot be used for {config.task}", problems)
 
