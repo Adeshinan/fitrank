@@ -67,6 +67,11 @@ def step_name(step: str | dict[str, Any]) -> str:
     return step if isinstance(step, str) else next(iter(step))
 
 
+def step_options(step: str | dict[str, Any]) -> Any:
+    """Return what follows the name: ``None`` for ``scaler``, ``robust`` for ``scaler: robust``."""
+    return None if isinstance(step, str) else next(iter(step.values()))
+
+
 class _Section(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
