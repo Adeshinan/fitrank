@@ -35,3 +35,6 @@ runs/
 Thumbs.db
 
 .claude/
+
+# Personal notebooks (exploration, not part of the package)
+notebooks/

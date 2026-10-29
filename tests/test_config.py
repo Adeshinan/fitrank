@@ -490,3 +490,24 @@ def test_step_name() -> None:
 def test_hint_is_indented_under_the_details() -> None:
     error = ConfigError("bad", ["a"], hint="first\nsecond")
     assert str(error) == "bad\n  -> a\n  Hint: first\n        second"
+
+
+# --- Metric names (scikit-learn scorers) -----------------------------------------------------
+
+
+def test_unknown_metrics_are_refused_with_a_suggestion(tmp_path: Path) -> None:
+    error = load_error(
+        tmp_path, with_extra("evaluation: {primary_metric: f1_weigted, metrics: [accuracy, rmse]}")
+    )
+    assert error.details == [
+        "evaluation.primary_metric: unknown metric (did you mean 'f1_weighted'?);"
+        " see sklearn.metrics.get_scorer_names() (got 'f1_weigted')",
+        "evaluation.metrics[1]: unknown metric; see sklearn.metrics.get_scorer_names()"
+        " (got 'rmse')",
+    ]
+
+
+def test_scikit_learn_metric_names_are_accepted(tmp_path: Path) -> None:
+    extra = "evaluation: {primary_metric: neg_root_mean_squared_error, metrics: [r2]}"
+    config = load_config(write(tmp_path, with_extra(extra)))
+    assert config.evaluation.primary_metric == "neg_root_mean_squared_error"

@@ -10,8 +10,17 @@ from pathlib import Path
 from typing import Annotated, Any, Literal, get_args, get_origin
 
 import yaml
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, ValidationError, field_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+)
 from pydantic_core import ErrorDetails
+from sklearn.metrics import get_scorer_names
 
 from fitrank.exceptions import ConfigError
 from fitrank.registry import TASKS, Task, get_model, list_models
@@ -62,6 +71,19 @@ def _check_step(value: Any) -> Any:
 Step = Annotated[str | dict[str, Any], BeforeValidator(_check_step)]
 
 
+def _check_metric(name: str) -> str:
+    names = get_scorer_names()
+    if name in names:
+        return name
+    close = difflib.get_close_matches(name, names, n=1)
+    hint = f" (did you mean {close[0]!r}?)" if close else ""
+    raise ValueError(f"unknown metric{hint}; see sklearn.metrics.get_scorer_names()")
+
+
+# A scikit-learn scorer name, e.g. f1_weighted or neg_root_mean_squared_error.
+Metric = Annotated[str, AfterValidator(_check_metric)]
+
+
 def step_name(step: str | dict[str, Any]) -> str:
     """Return the name of a step: ``imputer`` for ``{imputer: {strategy: median}}``."""
     return step if isinstance(step, str) else next(iter(step))
@@ -110,8 +132,8 @@ class EvaluationConfig(_Section):
     cv: int = Field(default=5, ge=2)
     search: Literal["grid", "random"] = "grid"
     n_iter: int = Field(default=20, ge=1)
-    primary_metric: str | None = None  # None = default for the task
-    metrics: list[str] = []
+    primary_metric: Metric | None = None  # None = default for the task
+    metrics: list[Metric] = []  # empty = suggested metrics for the task
 
     @field_validator("test_size")
     @classmethod
