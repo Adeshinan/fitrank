@@ -28,3 +28,7 @@ class ConfigError(FitRankError):
 
 class DataError(FitRankError):
     """The data cannot be read, or cannot be used as declared in the configuration."""
+
+
+class FitRankWarning(UserWarning):
+    """Something still works but deserves attention, e.g. a scikit-learn version mismatch."""
