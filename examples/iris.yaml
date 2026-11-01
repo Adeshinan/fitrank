@@ -1,31 +1,59 @@
-# FitRank example: classify iris flowers from 4 measurements.
-# First version (day 8); fully commented on day 9.
-# Run it from the repository root:  fitrank run examples/iris.yaml
+# FitRank example: classification.
+# Predict the species of an iris flower (setosa, versicolor or virginica)
+# from 4 measurements of its petals and sepals, in centimetres.
+#
+# Run it from the repository root:
+#     fitrank validate examples/iris.yaml   # check the config and the data (instant)
+#     fitrank run examples/iris.yaml        # train, compare and rank (about 15 s)
+#
+# Copy this file to start your own experiment. Every key is explained; keys
+# marked "optional" can be removed, FitRank then uses the value shown.
 
 project:
-  name: iris
+  name: iris                 # names the results folder: runs/iris_<date>_<time>/
+  output_dir: runs           # optional: where results folders are created
+  random_state: 42           # optional: same number = same split, same folds, same results
 
 data:
-  path: examples/data/iris.csv   # relative to the folder the command runs in
-  target: species
+  path: examples/data/iris.csv   # CSV, Excel (.xlsx) or Parquet; relative to the current folder
+  target: species                # the column to predict
+  features: all                  # optional: "all" other columns, or a list such as [petal_length, petal_width]
 
-task: classification
+task: classification         # classification (predict a category) or regression (predict a number)
 
+# Preprocessing is explicit: FitRank changes nothing unless it is declared here.
+# Each group applies its steps, in order, to its columns; other columns pass
+# through unchanged. The steps are fitted inside each CV fold, so no
+# information leaks from the validation data.
 preprocessing:
-  numeric:
+  numeric:                   # any group name you like
     columns: [sepal_length, sepal_width, petal_length, petal_width]
-    steps: [scaler]
+    steps: [scaler]          # scaler = standard (mean 0, std 1); also scaler: minmax, scaler: robust
+    # other steps: imputer (fill missing values), encoder (turn text categories into numbers)
 
+# Each reduction is combined with each model: 2 reductions x 4 models = 8 candidates.
 reduction:
-  - none
-  - pca: {n_components: [2]}
+  - none                     # the columns as they are
+  - pca: {n_components: [2]} # project the 4 columns onto 2; values in [] are searched like params
 
+# Models by name: `fitrank list models --task classification` shows them all.
+# Without params, a small default grid is searched; with params, you choose the
+# values to try (the grid replaces the default one).
 models:
   - name: logistic_regression
   - name: knn
   - name: svm
   - name: random_forest
-    params: {n_estimators: [100], max_depth: [null, 3]}   # small grid: keeps the example fast
+    params: {n_estimators: [100], max_depth: [null, 3]}  # 2 combinations; null = no limit
 
 evaluation:
-  cv: 5
+  test_size: 0.2             # optional: 20 % of the rows are kept aside for the final test score
+  cv: 5                      # optional: 5-fold cross-validation on the other 80 %
+  search: grid               # optional: grid (try every combination) or random (try n_iter of them)
+  primary_metric: f1_weighted  # optional: ranks the models (default f1_weighted for classification)
+  metrics: [accuracy, f1_macro]  # optional: also reported on the test set
+  # metric names come from scikit-learn: python -c "import sklearn.metrics as m; print(m.get_scorer_names())"
+
+output:
+  formats: [csv, json, markdown]  # optional: leaderboard files written in the results folder
+  save_best_model: true           # optional: best_model.joblib, for `fitrank predict`

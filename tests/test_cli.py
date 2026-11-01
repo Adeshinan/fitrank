@@ -180,8 +180,9 @@ def test_every_candidate_failed_exits_3(workdir: Path) -> None:
     text = IRIS_YAML.replace("{C: [1]}", "{C: [-1]}").replace(
         "{n_neighbors: [5]}", "{n_neighbors: [-1]}"
     )
-    result = runner.invoke(app, ["run", write_config(workdir / "fail.yaml", text)])
+    result = runner.invoke(app, ["--verbose", "run", write_config(workdir / "fail.yaml", text)])
     assert result.exit_code == 3
+    assert "failed  none + knn: ValueError" in result.output  # one line per candidate
     assert "every candidate failed" in result.output
     assert (only_run(workdir) / "leaderboard.csv").is_file()  # the failures are still saved
 
@@ -217,6 +218,16 @@ def test_predict_missing_column_exits_2(workdir: Path, model_path: Path) -> None
     result = runner.invoke(app, ["predict", str(model_path), "new.csv"])
     assert result.exit_code == 2
     assert "missing column(s) the model was trained on: petal_width" in result.output
+
+
+def test_predict_bad_value_exits_2(workdir: Path, model_path: Path) -> None:
+    frame = pd.read_csv("iris.csv").astype({"petal_width": object})
+    frame.loc[0, "petal_width"] = "wide"
+    frame.to_csv("new.csv", index=False)
+    result = runner.invoke(app, ["predict", str(model_path), "new.csv"])
+    assert result.exit_code == 2
+    assert "cannot predict on new.csv" in result.output
+    assert "Traceback" not in result.output
 
 
 def test_predict_missing_model_exits_1(workdir: Path) -> None:
