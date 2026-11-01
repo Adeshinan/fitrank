@@ -53,9 +53,8 @@ dev = [
     "twine",
 ]
 
-# The `fitrank` command is added on day 8 (feat/j08-api-cli):
-# [project.scripts]
-# fitrank = "fitrank.cli:app"
+[project.scripts]
+fitrank = "fitrank.cli:app"
 
 [project.urls]
 Homepage = "https://github.com/Adeshinan/fitrank"

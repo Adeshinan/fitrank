@@ -6,6 +6,7 @@ that fails is reported as ``failed`` without stopping the others.
 """
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -124,9 +125,15 @@ def make_folds(config: FitRankConfig) -> KFold | StratifiedKFold:
 
 
 def evaluate(
-    candidates: list[Candidate], X: pd.DataFrame, y: pd.Series, config: FitRankConfig
+    candidates: list[Candidate],
+    X: pd.DataFrame,
+    y: pd.Series,
+    config: FitRankConfig,
+    on_result: Callable[[CandidateResult], None] | None = None,
 ) -> list[CandidateResult]:
     """Search, cross-validate and test every candidate, in order.
+
+    ``on_result`` is called after each candidate, e.g. to advance a progress bar.
 
     Raises:
         DataError: the data cannot be split (see ``split_data``). A failing
@@ -134,10 +141,13 @@ def evaluate(
     """
     X_train, X_test, y_train, y_test = split_data(X, y, config)
     folds = make_folds(config)
-    return [
-        _evaluate_one(candidate, X_train, X_test, y_train, y_test, folds, config)
-        for candidate in candidates
-    ]
+    results = []
+    for candidate in candidates:
+        result = _evaluate_one(candidate, X_train, X_test, y_train, y_test, folds, config)
+        if on_result is not None:
+            on_result(result)
+        results.append(result)
+    return results
 
 
 def _evaluate_one(
