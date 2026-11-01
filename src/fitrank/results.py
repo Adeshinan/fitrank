@@ -28,7 +28,6 @@ import sklearn
 import yaml
 from sklearn.pipeline import Pipeline
 
-from fitrank import __version__
 from fitrank.config import FitRankConfig
 from fitrank.evaluation import (
     CandidateResult,
@@ -65,6 +64,7 @@ class Results:
         if duration_seconds is None:
             duration_seconds = sum(r.fit_seconds for r in results)
         self.duration_seconds = duration_seconds
+        self.run_dir: Path | None = None  # set by export()
 
     @property
     def best(self) -> CandidateResult | None:
@@ -148,6 +148,7 @@ class Results:
         if self.config.output.save_best_model and self.best is not None:
             joblib.dump(self.best_model(), run_dir / MODEL_FILE)
         _write(run_dir / METADATA_FILE, json.dumps(self._metadata(now), indent=2) + "\n")
+        self.run_dir = run_dir
         return run_dir
 
     def _markdown(self, table: pd.DataFrame) -> str:
@@ -166,6 +167,8 @@ class Results:
         return "\n".join(lines) + "\n"
 
     def _metadata(self, now: datetime) -> dict[str, Any]:
+        from fitrank import __version__  # not at the top: fitrank/__init__.py imports this module
+
         best = self.best
         return {
             "created_at": now.isoformat(timespec="seconds"),

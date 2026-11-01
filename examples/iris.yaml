@@ -1,0 +1,31 @@
+# FitRank example: classify iris flowers from 4 measurements.
+# First version (day 8); fully commented on day 9.
+# Run it from the repository root:  fitrank run examples/iris.yaml
+
+project:
+  name: iris
+
+data:
+  path: examples/data/iris.csv   # relative to the folder the command runs in
+  target: species
+
+task: classification
+
+preprocessing:
+  numeric:
+    columns: [sepal_length, sepal_width, petal_length, petal_width]
+    steps: [scaler]
+
+reduction:
+  - none
+  - pca: {n_components: [2]}
+
+models:
+  - name: logistic_regression
+  - name: knn
+  - name: svm
+  - name: random_forest
+    params: {n_estimators: [100], max_depth: [null, 3]}   # small grid: keeps the example fast
+
+evaluation:
+  cv: 5

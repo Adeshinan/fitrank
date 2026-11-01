@@ -191,7 +191,15 @@ def load_config(path: str | Path) -> FitRankConfig:
             f"invalid configuration in {source}",
             [f"the top level must be a mapping of sections ({_allowed_keys(FitRankConfig)})"],
         )
+    return validate_config(raw, source)
 
+
+def validate_config(raw: dict[str, Any], source: str) -> FitRankConfig:
+    """Validate a configuration given as a dict; ``source`` names it in errors.
+
+    Raises:
+        ConfigError: the dict does not match the expected schema.
+    """
     try:
         return FitRankConfig.model_validate(raw)
     except ValidationError as exc:
