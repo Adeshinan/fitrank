@@ -37,6 +37,7 @@ scikit-learn models from a single YAML config. Owner: Adeshinan (GitHub).
 ```bash
 pip install -e ".[dev]"
 pytest                      # tests
+pytest -m "not e2e"         # skip the end-to-end tests (real fitrank processes, ~1 min)
 pytest --cov                # coverage (target >= 85 %)
 ruff check . && ruff format --check .
 mypy                        # strict
