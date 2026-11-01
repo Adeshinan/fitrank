@@ -213,7 +213,9 @@ pytest                       # ajoutez -m "not e2e" pour sauter les tests de bou
 ```
 
 Chaque pull request passe ruff, mypy (strict) et les tests sous Linux, macOS et
-Windows, avec Python 3.10 à 3.13.
+Windows, avec Python 3.10 à 3.13. Les conventions sont décrites dans
+[CONTRIBUTING.md](CONTRIBUTING.md) (en anglais), et les changements de chaque
+version dans le [changelog](CHANGELOG.md).
 
 ## Licence
 

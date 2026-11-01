@@ -205,7 +205,8 @@ pytest                       # add -m "not e2e" to skip the slower end-to-end te
 ```
 
 Pull requests run ruff, mypy (strict) and the tests on Linux, macOS and Windows,
-Python 3.10 to 3.13.
+Python 3.10 to 3.13. See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions,
+and the [changelog](CHANGELOG.md) for what changed in each version.
 
 ## License
 

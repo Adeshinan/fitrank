@@ -1,0 +1,41 @@
+name: Bug report
+description: FitRank crashes, gives a wrong result or an unclear error message.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting! The more of this you can fill in, the faster it gets fixed.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: The YAML file (or the Benchmark call) you ran. Remove anything private.
+      render: yaml
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: The full output, with `fitrank --verbose run ...` if you can.
+      render: text
+  - type: textarea
+    id: data
+    attributes:
+      label: Data
+      description: >-
+        A few rows that reproduce the problem, or a description of the columns
+        (names, types, missing values). Never share private data.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Output of `fitrank --version`, and your Python, scikit-learn and OS versions.
+      placeholder: fitrank 1.0.0, Python 3.12, scikit-learn 1.7, Windows 11
+    validations:
+      required: true
