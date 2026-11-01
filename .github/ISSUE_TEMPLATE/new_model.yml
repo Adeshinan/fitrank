@@ -1,0 +1,49 @@
+name: New model
+description: Propose a built-in model (or a reduction) for FitRank.
+labels: ["new model"]
+body:
+  - type: input
+    id: estimator
+    attributes:
+      label: scikit-learn estimator
+      description: The class to add. Built-in models only depend on scikit-learn.
+      placeholder: sklearn.ensemble.ExtraTreesClassifier
+    validations:
+      required: true
+  - type: dropdown
+    id: task
+    attributes:
+      label: Task
+      multiple: true
+      options:
+        - classification
+        - regression
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Proposed name in the YAML
+      placeholder: extra_trees
+    validations:
+      required: true
+  - type: textarea
+    id: grid
+    attributes:
+      label: Default grid
+      description: A small grid (2 to 12 combinations) so that a first run stays fast.
+      render: yaml
+      placeholder: "n_estimators: [100, 300]\nmax_depth: [null, 10]"
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is it useful?
+      description: When does it do better than the built-in models?
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to open the pull request myself.
