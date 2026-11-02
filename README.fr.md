@@ -3,11 +3,11 @@
 [![CI](https://github.com/Adeshinan/fitrank/actions/workflows/ci.yml/badge.svg)](https://github.com/Adeshinan/fitrank/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/fitrank)](https://pypi.org/project/fitrank/)
 [![Python](https://img.shields.io/pypi/pyversions/fitrank)](https://pypi.org/project/fitrank/)
-[![Licence : MIT](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
+[![Licence : MIT](https://img.shields.io/badge/licence-MIT-blue)](https://github.com/Adeshinan/fitrank/blob/main/LICENSE)
 
 **Comparer des modèles scikit-learn de façon reproductible, à partir d'un fichier de configuration. Aucun prétraitement caché.**
 
-[English](README.md) · Français
+[English](https://github.com/Adeshinan/fitrank/blob/main/README.md) · Français
 
 FitRank entraîne plusieurs modèles scikit-learn sur vos données tabulaires,
 règle les hyperparamètres de chacun et les classe dans un tableau. Toute
@@ -79,7 +79,7 @@ Chaque modèle est réglé sur les mêmes plis de validation croisée, classé, 
 
 ## Le classement
 
-L'[exemple Iris](examples/iris.yaml) compare 4 modèles, avec et sans ACP (PCA),
+L'[exemple Iris](https://github.com/Adeshinan/fitrank/blob/main/examples/iris.yaml) compare 4 modèles, avec et sans ACP (PCA),
 après mise à l'échelle des colonnes. Depuis la racine du dépôt :
 
 ```bash
@@ -115,8 +115,8 @@ nouvelles données :
 fitrank predict runs/iris_2026-11-01_15-36-06/best_model.joblib nouvelles_fleurs.csv -o predictions.csv
 ```
 
-[`examples/iris.yaml`](examples/iris.yaml) explique chaque clé de la
-configuration ; [`examples/diabetes.yaml`](examples/diabetes.yaml) est un
+[`examples/iris.yaml`](https://github.com/Adeshinan/fitrank/blob/main/examples/iris.yaml) explique chaque clé de la
+configuration ; [`examples/diabetes.yaml`](https://github.com/Adeshinan/fitrank/blob/main/examples/diabetes.yaml) est un
 exemple de régression.
 
 ## Autres commandes
@@ -214,9 +214,9 @@ pytest                       # ajoutez -m "not e2e" pour sauter les tests de bou
 
 Chaque pull request passe ruff, mypy (strict) et les tests sous Linux, macOS et
 Windows, avec Python 3.10 à 3.13. Les conventions sont décrites dans
-[CONTRIBUTING.md](CONTRIBUTING.md) (en anglais), et les changements de chaque
-version dans le [changelog](CHANGELOG.md).
+[CONTRIBUTING.md](https://github.com/Adeshinan/fitrank/blob/main/CONTRIBUTING.md) (en anglais), et les changements de chaque
+version dans le [changelog](https://github.com/Adeshinan/fitrank/blob/main/CHANGELOG.md).
 
 ## Licence
 
-[MIT](LICENSE) © 2026 Faïd Adéshinan ALAGBE
+[MIT](https://github.com/Adeshinan/fitrank/blob/main/LICENSE) © 2026 Faïd Adéshinan ALAGBE

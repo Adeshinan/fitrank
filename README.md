@@ -3,11 +3,11 @@
 [![CI](https://github.com/Adeshinan/fitrank/actions/workflows/ci.yml/badge.svg)](https://github.com/Adeshinan/fitrank/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/fitrank)](https://pypi.org/project/fitrank/)
 [![Python](https://img.shields.io/pypi/pyversions/fitrank)](https://pypi.org/project/fitrank/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Adeshinan/fitrank/blob/main/LICENSE)
 
 **Reproducible, config-driven model comparison for scikit-learn. No hidden preprocessing.**
 
-English · [Français](README.fr.md)
+English · [Français](https://github.com/Adeshinan/fitrank/blob/main/README.fr.md)
 
 FitRank trains several scikit-learn models on your tabular data, tunes each one,
 and ranks them in a leaderboard. You describe the whole experiment in one YAML
@@ -75,7 +75,7 @@ a test set kept aside. The results are saved in `runs/fitrank_<date>_<time>/`.
 
 ## The leaderboard
 
-The [Iris example](examples/iris.yaml) compares 4 models, with and without a
+The [Iris example](https://github.com/Adeshinan/fitrank/blob/main/examples/iris.yaml) compares 4 models, with and without a
 PCA, after scaling the columns. Run from the repository root:
 
 ```bash
@@ -110,8 +110,8 @@ and the best model, ready for new data:
 fitrank predict runs/iris_2026-11-01_15-36-06/best_model.joblib new_flowers.csv -o predictions.csv
 ```
 
-[`examples/iris.yaml`](examples/iris.yaml) explains every key of the
-configuration; [`examples/diabetes.yaml`](examples/diabetes.yaml) is a
+[`examples/iris.yaml`](https://github.com/Adeshinan/fitrank/blob/main/examples/iris.yaml) explains every key of the
+configuration; [`examples/diabetes.yaml`](https://github.com/Adeshinan/fitrank/blob/main/examples/diabetes.yaml) is a
 regression example.
 
 ## Other commands
@@ -205,9 +205,9 @@ pytest                       # add -m "not e2e" to skip the slower end-to-end te
 ```
 
 Pull requests run ruff, mypy (strict) and the tests on Linux, macOS and Windows,
-Python 3.10 to 3.13. See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions,
-and the [changelog](CHANGELOG.md) for what changed in each version.
+Python 3.10 to 3.13. See [CONTRIBUTING.md](https://github.com/Adeshinan/fitrank/blob/main/CONTRIBUTING.md) for the conventions,
+and the [changelog](https://github.com/Adeshinan/fitrank/blob/main/CHANGELOG.md) for what changed in each version.
 
 ## License
 
-[MIT](LICENSE) © 2026 Faïd Adéshinan ALAGBE
+[MIT](https://github.com/Adeshinan/fitrank/blob/main/LICENSE) © 2026 Faïd Adéshinan ALAGBE

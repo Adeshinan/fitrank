@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-11-06
+### Fixed
+
+- README links now work on the PyPI page: they point to GitHub instead of
+  relative paths, which PyPI turned into 404 pages.
+
+## [1.0.0] - 2026-11-01
 
 First public release: train, compare and rank scikit-learn models on tabular
 data from a single YAML file.
