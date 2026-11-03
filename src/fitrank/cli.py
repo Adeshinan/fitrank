@@ -1,4 +1,4 @@
-"""The ``fitrank`` command: run, validate, list and predict from the terminal.
+"""The ``fitrank`` command: init, run, validate, list and predict from the terminal.
 
 Exit codes: 0 success, 1 configuration error, 2 data error, 3 every candidate
 failed. User errors are shown in red without a traceback (unless --verbose).
@@ -24,12 +24,14 @@ from sklearn.pipeline import Pipeline
 
 from fitrank import __version__
 from fitrank.benchmark import Benchmark
-from fitrank.data import load_dataframe
+from fitrank.config import DataConfig
+from fitrank.data import is_text, load_dataframe, split_features_target
 from fitrank.evaluation import CandidateResult, display_name, higher_is_better
-from fitrank.exceptions import DataError, FitRankError
+from fitrank.exceptions import ConfigError, DataError, FitRankError
 from fitrank.reduction import list_reductions
 from fitrank.registry import TASKS, list_models
 from fitrank.results import Results, load_model
+from fitrank.template import render_config
 
 EXIT_CONFIG = 1
 EXIT_DATA = 2
@@ -121,6 +123,61 @@ def validate(
         f"{len(plan.candidates)} candidates: {len(cfg.reduction)} reduction(s)"
         f" x {len(cfg.models)} model(s), {cfg.evaluation.cv}-fold cross-validation"
     )
+
+
+@app.command()
+def init(
+    ctx: typer.Context,
+    output: Annotated[
+        Path, typer.Option("--output", "-o", help="The config file to write.")
+    ] = Path("config.yaml"),
+    task: Annotated[str, typer.Option(help="classification or regression.")] = "classification",
+    data: Annotated[
+        Path | None,
+        typer.Option(help="CSV, Excel or Parquet file: fills data.path and the column lists."),
+    ] = None,
+    target: Annotated[str | None, typer.Option(help="The column to predict.")] = None,
+    force: Annotated[bool, typer.Option("--force", help="Overwrite an existing file.")] = False,
+) -> None:
+    """Write a commented starter config."""
+    if task not in TASKS:
+        raise typer.BadParameter(f"must be one of: {', '.join(TASKS)}", param_hint="--task")
+    options: Options = ctx.obj
+    with _user_errors(options):
+        if output.exists() and not force:
+            raise ConfigError(
+                f"{output.as_posix()} already exists",
+                ["use --force to overwrite it, or -o to write another file"],
+            )
+        todo = []
+        if data is None:
+            todo.append("set data.path to your data file")
+        if target is None:
+            todo.append("set data.target to the column to predict")
+        frame = None
+        if data is not None:
+            frame = load_dataframe(data)
+            if target is not None:
+                # Same "not found, did you mean" error as fitrank validate.
+                X, _ = split_features_target(frame, DataConfig(path=data, target=target))
+                if X.isna().any().any() or any(is_text(X[column]) for column in X.columns):
+                    todo.append(
+                        "uncomment the preprocessing section: the data has text or missing values"
+                    )
+        text = render_config(task, data, target, frame)
+        try:
+            output.write_text(text, encoding="utf-8")
+        except OSError as exc:
+            raise ConfigError(
+                f"cannot write {output.as_posix()}", [exc.strerror or str(exc)]
+            ) from None
+
+    console.print(f"Config written to {output.as_posix()}")
+    if options.quiet:
+        return
+    for item in todo:
+        console.print(f"  - {item}")
+    console.print(f"Next: fitrank validate {output.as_posix()}")
 
 
 @list_app.command("models")
