@@ -110,6 +110,117 @@ def test_validate_does_not_train(workdir: Path) -> None:
     assert not (workdir / "runs").exists()
 
 
+# --- init ------------------------------------------------------------------------------------
+
+
+def uncomment_preprocessing(path: Path) -> None:
+    """Uncomment the suggested preprocessing block, as the generated file tells the user."""
+    lines, inside = [], False
+    for line in path.read_text(encoding="utf-8").splitlines():
+        inside = (inside or line == "# preprocessing:") and line != ""
+        lines.append(line.removeprefix("# ") if inside else line)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_init_from_data_passes_validate(workdir: Path) -> None:
+    result = runner.invoke(app, ["init", "--data", "iris.csv", "--target", "species"])
+    assert result.exit_code == 0, result.output
+    assert "Config written to config.yaml" in result.output
+    text = (workdir / "config.yaml").read_text(encoding="utf-8")
+    assert "features: [sepal_length, sepal_width, petal_length, petal_width]" in text
+    assert "\npreprocessing:" not in text  # suggested, not applied
+
+    result = runner.invoke(app, ["validate", "config.yaml"])
+    assert result.exit_code == 0, result.output
+    assert "4 candidates: 1 reduction(s) x 4 model(s)" in result.output
+
+    uncomment_preprocessing(workdir / "config.yaml")
+    assert Benchmark.from_yaml("config.yaml").config.preprocessing["numeric"].steps == ["scaler"]
+
+
+def test_init_without_data_writes_a_template(workdir: Path) -> None:
+    result = runner.invoke(app, ["init", "--task", "regression", "-o", "my.yaml"])
+    assert result.exit_code == 0, result.output
+    assert "set data.path" in result.output
+    assert "set data.target" in result.output
+
+    config = Benchmark.from_yaml("my.yaml").config  # the schema is valid, only the data is missing
+    assert config.task == "regression"
+    assert config.data.path == Path("data.csv")
+    assert [model.name for model in config.models] == [
+        "linear_regression",
+        "ridge",
+        "decision_tree",
+        "random_forest",
+    ]
+    assert config.evaluation.primary_metric == "neg_root_mean_squared_error"
+
+
+def test_init_suggests_imputer_and_encoder(workdir: Path) -> None:
+    pd.DataFrame(
+        {
+            "surface m2": [50, None, 80, 60, 70, 55, 90, 65, 75, 85],
+            "city": ["Lyon", "Paris", None, "Lyon", "Paris"] * 2,
+            "yes": [1, 0] * 5,
+            "price": [200, 350, 300, 220, 330, 210, 400, 260, 340, 310],
+        }
+    ).to_csv(workdir / "houses.csv", index=False)
+    args = ["init", "--data", "houses.csv", "--target", "price", "--task", "regression"]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+    assert "uncomment the preprocessing section" in result.output
+    text = (workdir / "config.yaml").read_text(encoding="utf-8")
+    assert "features: [surface m2, city, 'yes']" in text  # 'yes' would be read as true
+
+    result = runner.invoke(app, ["validate", "config.yaml"])
+    assert result.exit_code == 2  # FitRank reports, it never fixes silently
+
+    uncomment_preprocessing(workdir / "config.yaml")
+    result = runner.invoke(app, ["validate", "config.yaml"])
+    assert result.exit_code == 0, result.output
+    groups = Benchmark.from_yaml("config.yaml").config.preprocessing
+    assert groups["numeric"].steps == [{"imputer": {"strategy": "median"}}, "scaler"]
+    assert groups["categorical"].steps == [{"imputer": {"strategy": "most_frequent"}}, "encoder"]
+
+
+def test_init_data_without_target_lists_the_columns(workdir: Path) -> None:
+    result = runner.invoke(app, ["init", "--data", "iris.csv"])
+    assert result.exit_code == 0, result.output
+    text = (workdir / "config.yaml").read_text(encoding="utf-8")
+    assert "target: target" in text
+    assert "features: all" in text
+    assert (
+        "# columns of iris.csv: [sepal_length, sepal_width, petal_length, petal_width, species]"
+        in text
+    )
+
+
+def test_init_unknown_target_exits_2(workdir: Path) -> None:
+    result = runner.invoke(app, ["init", "--data", "iris.csv", "--target", "specie"])
+    assert result.exit_code == 2
+    assert "did you mean 'species'" in result.output
+    assert not (workdir / "config.yaml").exists()
+
+
+def test_init_does_not_overwrite_without_force(workdir: Path) -> None:
+    original = (workdir / "iris.yaml").read_text(encoding="utf-8")
+    result = runner.invoke(app, ["init", "-o", "iris.yaml"])
+    assert result.exit_code == 1
+    assert "iris.yaml already exists" in result.output
+    assert "--force" in result.output
+    assert (workdir / "iris.yaml").read_text(encoding="utf-8") == original
+
+    result = runner.invoke(app, ["init", "-o", "iris.yaml", "--force"])
+    assert result.exit_code == 0, result.output
+    assert (workdir / "iris.yaml").read_text(encoding="utf-8") != original
+
+
+def test_init_unknown_task() -> None:
+    result = runner.invoke(app, ["init", "--task", "clustering"])
+    assert result.exit_code == 2
+    assert "must be one of: classification, regression" in result.output
+
+
 # --- run -------------------------------------------------------------------------------------
 
 

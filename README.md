@@ -70,6 +70,9 @@ Run it:
 fitrank run fitrank.yaml
 ```
 
+To start from a commented file instead, `fitrank init --data iris.csv --target target`
+writes a `config.yaml` with your columns, four models and every option explained.
+
 Each model is tuned on the same cross-validation folds, ranked, then scored on
 a test set kept aside. The results are saved in `runs/fitrank_<date>_<time>/`.
 
@@ -117,6 +120,7 @@ regression example.
 ## Other commands
 
 ```bash
+fitrank init --data data.csv --target price --task regression   # write a commented config.yaml
 fitrank validate fitrank.yaml        # check the config and the data, train nothing
 fitrank list models --task regression
 fitrank list reductions

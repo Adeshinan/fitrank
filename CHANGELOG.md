@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `fitrank init` writes a commented starter config. With `--data` and `--target`,
+  it fills the data path, the feature list and suggested preprocessing groups
+  (commented out: nothing is applied until you uncomment them). It never
+  overwrites a file without `--force`.
+
 ### Fixed
 
 - README links now work on the PyPI page: they point to GitHub instead of

@@ -127,7 +127,7 @@ def check_data(X: pd.DataFrame, y: pd.Series, config: FitRankConfig) -> None:
                 f"column {column!r} has {n_missing} missing values"
                 " but no imputer is declared for it"
             )
-        if _is_text(X[column]) and column not in with_encoder:
+        if is_text(X[column]) and column not in with_encoder:
             need_encoder.append(column)
             problems.append(f"column {column!r} contains text but no encoder is declared for it")
 
@@ -176,7 +176,8 @@ def _columns_with_step(config: FitRankConfig, name: str) -> set[str]:
     }
 
 
-def _is_text(column: pd.Series) -> bool:
+def is_text(column: pd.Series) -> bool:
+    """True for a column FitRank cannot train on without an encoder: text or categories."""
     return (
         pd.api.types.is_object_dtype(column)
         or pd.api.types.is_string_dtype(column)
@@ -187,8 +188,8 @@ def _is_text(column: pd.Series) -> bool:
 def _preprocessing_hint(
     X: pd.DataFrame, need_imputer: Sequence[Hashable], need_encoder: Sequence[Hashable]
 ) -> str | None:
-    numeric = [column for column in need_imputer if not _is_text(X[column])]
-    text = list(dict.fromkeys([*need_encoder, *(c for c in need_imputer if _is_text(X[c]))]))
+    numeric = [column for column in need_imputer if not is_text(X[column])]
+    text = list(dict.fromkeys([*need_encoder, *(c for c in need_imputer if is_text(X[c]))]))
     if not numeric and not text:
         return None
 

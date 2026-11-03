@@ -73,6 +73,9 @@ Lancez-la :
 fitrank run fitrank.yaml
 ```
 
+Pour partir plutôt d'un fichier commenté, `fitrank init --data iris.csv --target target`
+écrit un `config.yaml` avec vos colonnes, quatre modèles et chaque option expliquée.
+
 Chaque modèle est réglé sur les mêmes plis de validation croisée, classé, puis
 évalué sur un jeu de test mis de côté. Les résultats sont enregistrés dans
 `runs/fitrank_<date>_<heure>/`.
@@ -122,6 +125,7 @@ exemple de régression.
 ## Autres commandes
 
 ```bash
+fitrank init --data data.csv --target price --task regression   # écrit un config.yaml commenté
 fitrank validate fitrank.yaml        # vérifie la config et les données, sans rien entraîner
 fitrank list models --task regression
 fitrank list reductions
