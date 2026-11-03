@@ -122,6 +122,54 @@ fitrank predict runs/iris_2026-11-01_15-36-06/best_model.joblib nouvelles_fleurs
 configuration ; [`examples/diabetes.yaml`](https://github.com/Adeshinan/fitrank/blob/main/examples/diabetes.yaml) est un
 exemple de régression.
 
+## Des données réelles : Titanic
+
+L'[exemple Titanic](https://github.com/Adeshinan/fitrank/blob/main/examples/titanic.yaml) prédit lesquels des 1309 passagers ont
+survécu. Contrairement aux iris, les données sont imparfaites : des âges, un
+tarif et deux ports d'embarquement manquent, et certaines colonnes sont du
+texte. FitRank ne corrige jamais cela de lui-même : sans section
+`preprocessing`, `fitrank validate` liste chaque problème et le YAML qui y
+répond. L'exemple déclare tout :
+
+```yaml
+data:
+  path: examples/data/titanic.csv
+  target: Survived
+  features: all
+  exclude: [PassengerId, Name, Ticket, Cabin, HomeDest]   # identifiants et texte libre
+preprocessing:
+  numeric:
+    columns: [Age, Fare, SibSp, Parch]
+    steps: [{imputer: {strategy: median}}, scaler]
+  categorical:
+    columns: [Sex, Pclass, Embarked]
+    steps: [{imputer: {strategy: most_frequent}}, {encoder: onehot}]
+```
+
+```bash
+fitrank run examples/titanic.yaml      # 8 candidats, environ 40 s
+```
+
+| # | model | reduction | cv f1_weighted | test f1_weighted | test roc_auc |
+|---|---|---|---|---|---|
+| 1 | svm | pca | 0.8000 | 0.8306 | 0.8427 |
+| 2 | random_forest | none | 0.7996 | 0.8273 | 0.8890 |
+| 3 | svm | none | 0.7993 | 0.8379 | 0.8616 |
+| 4 | decision_tree | none | 0.7889 | 0.8228 | 0.8726 |
+| 5 | random_forest | pca | 0.7836 | 0.8183 | 0.8479 |
+| 6 | logistic_regression | none | 0.7833 | 0.8039 | 0.8673 |
+| 7 | logistic_regression | pca | 0.7696 | 0.8111 | 0.8538 |
+| 8 | decision_tree | pca | 0.7594 | 0.7790 | 0.8106 |
+
+Les trois premiers sont à moins de 0,001 d'écart, bien moins que leur cv std
+(environ 0,01) : sur ces données ils se valent, et leur ordre pourrait changer
+avec un autre `random_state`. Regardez le cv std avant de vous fier à un rang.
+
+Les valeurs manquantes sont remplies dans chaque pli de validation croisée, à
+partir des lignes d'entraînement seulement : les scores ne sont pas gonflés par
+une fuite de données. Les données viennent d'[OpenML](https://www.openml.org/d/40945)
+(licence publique) et sont regénérées par `scripts/make_example_data.py`.
+
 ## Autres commandes
 
 ```bash

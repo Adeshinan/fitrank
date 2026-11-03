@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with `features: all`. Using it with a list of features, or listing the target
   or an unknown column in it, is a clear error. Also available as
   `Benchmark(..., exclude=[...])`.
+- Titanic example (`examples/titanic.yaml`): real-world data with missing values,
+  text columns and excluded columns, downloaded from OpenML by
+  `scripts/make_example_data.py`. A "Real-world data: Titanic" section in the
+  READMEs shows its leaderboard.
 
 ### Fixed
 

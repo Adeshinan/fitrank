@@ -12,7 +12,7 @@ import pandas as pd
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-EXAMPLES = ["iris", "diabetes"]
+EXAMPLES = ["iris", "diabetes", "titanic"]
 
 pytestmark = pytest.mark.e2e
 
@@ -79,6 +79,24 @@ def test_example_runs_end_to_end(example: str, workdir: Path) -> None:
     out = pd.read_csv(workdir / "out.csv")
     assert len(out) == len(pd.read_csv(workdir / data))
     assert out.columns[-1] == "prediction"
+
+
+def test_titanic_without_preprocessing_lists_the_problems(workdir: Path) -> None:
+    """The problems the Titanic preprocessing answers are reported, not fixed silently."""
+    config = workdir / "examples" / "titanic.yaml"
+    text = config.read_text(encoding="utf-8")
+    start, end = text.index("preprocessing:"), text.index("reduction:")
+    config.write_text(text[:start] + text[end:], encoding="utf-8")
+
+    result = fitrank("validate", "examples/titanic.yaml", cwd=workdir)
+    assert result.returncode == 2
+    for problem in (
+        "column 'Age' has 263 missing values but no imputer is declared for it",
+        "column 'Fare' has 1 missing values but no imputer is declared for it",
+        "column 'Embarked' has 2 missing values but no imputer is declared for it",
+        "column 'Sex' contains text but no encoder is declared for it",
+    ):
+        assert problem in " ".join(result.stderr.split()), result.stderr
 
 
 def test_two_runs_give_the_same_leaderboard(workdir: Path) -> None:

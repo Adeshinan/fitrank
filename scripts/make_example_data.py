@@ -1,7 +1,8 @@
-"""Regenerate the example datasets in examples/data from scikit-learn.
+"""Regenerate the example datasets in examples/data from public sources.
 
-Both datasets ship with scikit-learn, so their origin is public and the CSV
-files can be rebuilt at any time::
+Iris and diabetes ship with scikit-learn; Titanic is downloaded from OpenML
+(dataset 40945, public licence), so the script needs a network connection.
+The CSV files can be rebuilt at any time::
 
     python scripts/make_example_data.py
 
@@ -9,11 +10,14 @@ files can be rebuilt at any time::
 - diabetes.csv: 442 patients, 10 measurements in their original units (not
   the scaled version), and the disease progression one year later. The blood
   serum columns s1 to s6 get the names given in the scikit-learn docs.
+- titanic.csv: 1309 passengers, whether they survived, with the missing
+  values and text columns of the original list. The columns get the usual
+  Kaggle names, plus a PassengerId.
 """
 
 from pathlib import Path
 
-from sklearn.datasets import load_diabetes, load_iris
+from sklearn.datasets import fetch_openml, load_diabetes, load_iris
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "examples" / "data"
 
@@ -32,6 +36,21 @@ DIABETES_COLUMNS = {
     "s5": "log_triglycerides",
     "s6": "glucose",
     "target": "progression",
+}
+
+TITANIC_COLUMNS = {
+    "pclass": "Pclass",
+    "survived": "Survived",
+    "name": "Name",
+    "sex": "Sex",
+    "age": "Age",
+    "sibsp": "SibSp",
+    "parch": "Parch",
+    "ticket": "Ticket",
+    "fare": "Fare",
+    "cabin": "Cabin",
+    "embarked": "Embarked",
+    "home.dest": "HomeDest",
 }
 
 
@@ -53,7 +72,21 @@ def make_diabetes() -> Path:
     return path
 
 
+def make_titanic() -> Path:
+    # The pandas parser fails on this file with pandas 3 (scikit-learn 1.9).
+    frame = fetch_openml("titanic", version=1, as_frame=True, parser="liac-arff").frame
+    # boat (lifeboat number) and body (body number) give the answer away: a
+    # passenger with a lifeboat survived, one with a body number did not.
+    frame = frame.drop(columns=["boat", "body"]).rename(columns=TITANIC_COLUMNS)
+    for column in ("Pclass", "Survived", "SibSp", "Parch"):
+        frame[column] = frame[column].astype(int)
+    frame.insert(0, "PassengerId", range(1, len(frame) + 1))
+    path = DATA_DIR / "titanic.csv"
+    frame.to_csv(path, index=False)
+    return path
+
+
 if __name__ == "__main__":
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    for path in (make_iris(), make_diabetes()):
+    for path in (make_iris(), make_diabetes(), make_titanic()):
         print(f"wrote {path.relative_to(DATA_DIR.parents[1]).as_posix()}")
