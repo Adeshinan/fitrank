@@ -66,6 +66,10 @@ def render_config(
         ),
         _line(f"  features: {_flow(features)}", 'optional: "all" other columns, or a list'),
     ]
+    if features == "all":
+        lines.append(
+            "  # exclude: [id, name]      # optional, with features: all: columns to leave out"
+        )
     if frame is not None and target is None:
         lines.append(f"  # columns of {path}: {_flow([str(c) for c in frame.columns])}")
     lines += [

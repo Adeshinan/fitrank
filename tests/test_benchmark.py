@@ -87,6 +87,14 @@ def test_dataframe_is_recorded_in_the_config() -> None:
     assert bench.config.data.path == Path("<DataFrame>")
 
 
+def test_exclude_argument() -> None:
+    frame = pd.DataFrame({"id": range(10), "x": [1.0] * 10, "y": [0, 1] * 5})
+    bench = Benchmark(data=frame, target="y", task="classification", models=["svm"],
+                      exclude=["id"])  # fmt: skip
+    assert bench.config.data.exclude == ["id"]
+    assert bench.validate().X.columns.tolist() == ["x"]
+
+
 def test_models_by_name() -> None:
     frame = pd.DataFrame({"x": [1.0]})
     bench = Benchmark(data=frame, target="x", task="regression", models=["ridge", "lasso"])

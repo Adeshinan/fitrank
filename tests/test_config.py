@@ -96,6 +96,7 @@ def test_minimal_config_gets_defaults(tmp_path: Path) -> None:
     assert cfg.project.random_state == 42
     assert cfg.data.path == Path("data.csv")
     assert cfg.data.features == "all"
+    assert cfg.data.exclude == []
     assert cfg.preprocessing == {}
     assert cfg.reduction == ["none"]
     assert cfg.models[0].name == "random_forest"
@@ -260,26 +261,31 @@ def test_unknown_key_in_a_preprocessing_group(tmp_path: Path) -> None:
     assert error.details == ["preprocessing.numeric.cols: unknown key (allowed: columns, steps)"]
 
 
-@pytest.mark.parametrize(
-    ("extra", "key"),
-    [
-        ("project: {n_jobs: -1}", "project.n_jobs"),
-        (None, "data.exclude"),
-    ],
-)
-def test_keys_planned_for_v1_1_are_refused(tmp_path: Path, extra: str | None, key: str) -> None:
-    text = (
-        with_extra(extra)
-        if extra
-        else """
-        data: {path: d.csv, target: y, exclude: [id]}
-        task: classification
-        models: [{name: svm}]
-        """
-    )
+def test_keys_planned_for_v1_1_are_refused(tmp_path: Path) -> None:
+    assert load_error(tmp_path, with_extra("project: {n_jobs: -1}")).details == [
+        "project.n_jobs: not supported yet (planned for v1.1), remove this key"
+    ]
 
+
+def test_exclude_with_features_all(tmp_path: Path) -> None:
+    text = MINIMAL.replace("target: y}", "target: y, exclude: [id, name]}")
+    cfg = load_config(write(tmp_path, text))
+    assert cfg.data.features == "all"
+    assert cfg.data.exclude == ["id", "name"]
+
+
+def test_exclude_and_a_feature_list_are_refused(tmp_path: Path) -> None:
+    text = MINIMAL.replace("target: y}", "target: y, features: [a, b], exclude: [id]}")
     assert load_error(tmp_path, text).details == [
-        f"{key}: not supported yet (planned for v1.1), remove this key"
+        "data: use features or exclude, not both: list the columns to keep in features,"
+        " or set features: all and list the columns to leave out in exclude"
+    ]
+
+
+def test_exclude_cannot_contain_the_target(tmp_path: Path) -> None:
+    text = MINIMAL.replace("target: y}", "target: y, exclude: [id, y]}")
+    assert load_error(tmp_path, text).details == [
+        "data: exclude contains the target 'y': remove it from exclude"
     ]
 
 

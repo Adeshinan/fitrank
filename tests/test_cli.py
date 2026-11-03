@@ -189,6 +189,7 @@ def test_init_data_without_target_lists_the_columns(workdir: Path) -> None:
     text = (workdir / "config.yaml").read_text(encoding="utf-8")
     assert "target: target" in text
     assert "features: all" in text
+    assert "# exclude: [id, name]" in text  # the option is shown, commented out
     assert (
         "# columns of iris.csv: [sepal_length, sepal_width, petal_length, petal_width, species]"
         in text

@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it fills the data path, the feature list and suggested preprocessing groups
   (commented out: nothing is applied until you uncomment them). It never
   overwrites a file without `--force`.
+- `data.exclude` leaves columns out of the features, e.g. `exclude: [id, name]`
+  with `features: all`. Using it with a list of features, or listing the target
+  or an unknown column in it, is a clear error. Also available as
+  `Benchmark(..., exclude=[...])`.
 
 ### Fixed
 
