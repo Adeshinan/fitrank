@@ -117,6 +117,53 @@ fitrank predict runs/iris_2026-11-01_15-36-06/best_model.joblib new_flowers.csv 
 configuration; [`examples/diabetes.yaml`](https://github.com/Adeshinan/fitrank/blob/main/examples/diabetes.yaml) is a
 regression example.
 
+## Real-world data: Titanic
+
+The [Titanic example](https://github.com/Adeshinan/fitrank/blob/main/examples/titanic.yaml) predicts which of the 1309 passengers
+survived. Unlike iris, the data is messy: ages, a fare and two ports are
+missing, and some columns are text. FitRank never fixes this on its own:
+without a `preprocessing` section, `fitrank validate` lists each problem and
+the YAML that answers it. The example declares it all:
+
+```yaml
+data:
+  path: examples/data/titanic.csv
+  target: Survived
+  features: all
+  exclude: [PassengerId, Name, Ticket, Cabin, HomeDest]   # ids and free text
+preprocessing:
+  numeric:
+    columns: [Age, Fare, SibSp, Parch]
+    steps: [{imputer: {strategy: median}}, scaler]
+  categorical:
+    columns: [Sex, Pclass, Embarked]
+    steps: [{imputer: {strategy: most_frequent}}, {encoder: onehot}]
+```
+
+```bash
+fitrank run examples/titanic.yaml      # 8 candidates, about 40 s
+```
+
+| # | model | reduction | cv f1_weighted | test f1_weighted | test roc_auc |
+|---|---|---|---|---|---|
+| 1 | svm | pca | 0.8000 | 0.8306 | 0.8427 |
+| 2 | random_forest | none | 0.7996 | 0.8273 | 0.8890 |
+| 3 | svm | none | 0.7993 | 0.8379 | 0.8616 |
+| 4 | decision_tree | none | 0.7889 | 0.8228 | 0.8726 |
+| 5 | random_forest | pca | 0.7836 | 0.8183 | 0.8479 |
+| 6 | logistic_regression | none | 0.7833 | 0.8039 | 0.8673 |
+| 7 | logistic_regression | pca | 0.7696 | 0.8111 | 0.8538 |
+| 8 | decision_tree | pca | 0.7594 | 0.7790 | 0.8106 |
+
+The top three are less than 0.001 apart, far less than their cv std (about
+0.01): on this data they are equally good, and the ranking between them could
+change with another `random_state`. Look at the cv std before trusting a rank.
+
+The missing values are filled inside each cross-validation fold, from the
+training rows only, so the scores are not inflated by data leakage. The data
+comes from [OpenML](https://www.openml.org/d/40945) (public licence) and is rebuilt by
+`scripts/make_example_data.py`.
+
 ## Other commands
 
 ```bash

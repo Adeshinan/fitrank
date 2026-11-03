@@ -15,8 +15,8 @@ task: classification
 models: [{name: random_forest}]
 """
 
-# The Titanic example from the specification (section 5), without `exclude`
-# and `n_jobs`, which ship in v1.1.
+# The Titanic example from the specification (section 5), with a feature list
+# instead of `exclude` and without `n_jobs` (planned for v1.1).
 TITANIC = """
 project:
   name: titanic-survie
