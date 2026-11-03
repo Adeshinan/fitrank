@@ -18,6 +18,7 @@ data:
   path: examples/data/iris.csv   # CSV, Excel (.xlsx) or Parquet; relative to the current folder
   target: species                # the column to predict
   features: all                  # optional: "all" other columns, or a list such as [petal_length, petal_width]
+  # exclude: [id, name]          # optional, with features: all: columns to leave out (ids, names, free text)
 
 task: classification         # classification (predict a category) or regression (predict a number)
 

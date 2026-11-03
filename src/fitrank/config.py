@@ -18,6 +18,7 @@ from pydantic import (
     Field,
     ValidationError,
     field_validator,
+    model_validator,
 )
 from pydantic_core import ErrorDetails
 from sklearn.metrics import get_scorer_names
@@ -29,7 +30,6 @@ Loc = tuple[int | str, ...]
 
 # Keys from the specification whose feature ships in a later release.
 _PLANNED_KEYS: dict[Loc, str] = {
-    ("data", "exclude"): "v1.1",
     ("project", "n_jobs"): "v1.1",
 }
 
@@ -108,6 +108,7 @@ class DataConfig(_Section):
     path: Path
     target: str
     features: list[str] | Literal["all"] = "all"
+    exclude: list[str] = []  # with features: all, the columns to leave out
 
     @field_validator("features", mode="before")
     @classmethod
@@ -115,6 +116,17 @@ class DataConfig(_Section):
         if value == "all" or (isinstance(value, list) and all(isinstance(v, str) for v in value)):
             return value
         raise ValueError("must be 'all' or a list of column names")
+
+    @model_validator(mode="after")
+    def _check_exclude(self) -> "DataConfig":
+        if self.exclude and self.features != "all":
+            raise ValueError(
+                "use features or exclude, not both: list the columns to keep in features,"
+                " or set features: all and list the columns to leave out in exclude"
+            )
+        if self.target in self.exclude:
+            raise ValueError(f"exclude contains the target {self.target!r}: remove it from exclude")
+        return self
 
 
 class PreprocessingGroup(_Section):

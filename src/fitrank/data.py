@@ -76,12 +76,14 @@ def split_features_target(
     where = source or data_cfg.path.as_posix()  # as written in the YAML, on every OS
     target = data_cfg.target
     if data_cfg.features == "all":
-        features = [column for column in df.columns if column != target]
+        left_out = {target, *data_cfg.exclude}
+        features = [column for column in df.columns if column not in left_out]
     else:
         features = list(data_cfg.features)
 
     missing = [(target, "data.target")] if target not in df.columns else []
     missing += [(column, "data.features") for column in features if column not in df.columns]
+    missing += [(column, "data.exclude") for column in data_cfg.exclude if column not in df.columns]
     if missing:
         raise _not_found(missing, df.columns, where)
     if target in features:
@@ -90,9 +92,10 @@ def split_features_target(
             ["remove it from data.features"],
         )
     if not features:
+        fix = "use fewer columns in data.exclude" if data_cfg.exclude else "use features: all"
         raise DataError(
             "no feature to train on",
-            ["list at least one column in data.features, or use features: all"],
+            [f"list at least one column in data.features, or {fix}"],
         )
     return df[features], df[target]
 
@@ -113,7 +116,11 @@ def check_data(X: pd.DataFrame, y: pd.Series, config: FitRankConfig) -> None:
     for group, settings in config.preprocessing.items():
         problems += [
             f"preprocessing.{group}.columns: {column!r} is not a feature"
-            " (check the spelling, or add it to data.features)"
+            + (
+                " (it is listed in data.exclude)"
+                if column in config.data.exclude
+                else " (check the spelling, or add it to data.features)"
+            )
             for column in settings.columns
             if column not in X.columns
         ]

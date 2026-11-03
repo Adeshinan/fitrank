@@ -188,6 +188,34 @@ def test_no_feature_left_is_refused(features: Any) -> None:
         split_features_target(df, DataConfig(path=Path("x.csv"), target="y", features=features))
 
 
+def test_excluded_columns_are_left_out() -> None:
+    X, y = load_xy("clean.csv", make_config(data={
+        "path": "clean.csv", "target": "Survived", "exclude": ["Fare"]
+    }))  # fmt: skip
+    assert list(X.columns) == ["Age", "Pclass"]
+    assert y.name == "Survived"
+
+
+def test_unknown_excluded_column_lists_columns_and_suggests() -> None:
+    config = make_config(data={"path": "clean.csv", "target": "Survived", "exclude": ["Fair"]})
+    with pytest.raises(DataError) as info:
+        load_xy("clean.csv", config)
+    assert str(info.value) == (
+        "column 'Fair' (data.exclude) not found in clean.csv\n"
+        "  -> available columns: Age, Fare, Pclass, Survived\n"
+        "  -> did you mean 'Fare' instead of 'Fair'?"
+    )
+
+
+def test_excluding_every_feature_is_refused() -> None:
+    df = pd.DataFrame({"a": [1, 2], "y": [0, 1]})
+    with pytest.raises(DataError) as info:
+        split_features_target(df, DataConfig(path=Path("x.csv"), target="y", exclude=["a"]))
+    assert info.value.details == [
+        "list at least one column in data.features, or use fewer columns in data.exclude"
+    ]
+
+
 # --- Checks before training ------------------------------------------------------------------
 
 
@@ -274,6 +302,17 @@ def test_preprocessing_column_must_be_a_feature() -> None:
     assert error.details == [
         "preprocessing.numeric.columns: 'Agee' is not a feature"
         " (check the spelling, or add it to data.features)"
+    ]
+
+
+def test_preprocessing_an_excluded_column_says_so() -> None:
+    config = make_config(
+        data={"path": "clean.csv", "target": "Survived", "exclude": ["Fare"]},
+        preprocessing={"numeric": {"columns": ["Fare"], "steps": ["scaler"]}},
+    )
+    error = data_error(*load_xy("clean.csv", config), config)
+    assert error.details == [
+        "preprocessing.numeric.columns: 'Fare' is not a feature (it is listed in data.exclude)"
     ]
 
 
