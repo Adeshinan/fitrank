@@ -222,6 +222,7 @@ def _make_search(
         "refit": metrics[0],
         "cv": folds,
         "error_score": np.nan,  # a failing combination is skipped, the others still count
+        "n_jobs": config.project.n_jobs,
     }
     if config.evaluation.search == "grid":
         return GridSearchCV(candidate.pipeline, candidate.param_grid, **common)

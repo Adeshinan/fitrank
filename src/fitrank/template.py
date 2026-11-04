@@ -54,6 +54,7 @@ def render_config(
         _line(f"  name: {_flow(project)}", "names the results folder: runs/<name>_<date>_<time>/"),
         _line("  output_dir: runs", "optional: where results folders are created"),
         _line("  random_state: 42", "optional: same number = same split, same folds, same results"),
+        _line("  n_jobs: 1", "optional: CPU cores for the search; -1 = all of them"),
         "",
         "data:",
         _line(

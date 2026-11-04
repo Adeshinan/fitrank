@@ -120,6 +120,16 @@ def test_results_are_reproducible() -> None:
     ]
 
 
+def test_parallel_search_gives_the_same_results() -> None:
+    sequential = run(iris_config(), IRIS)
+    config = iris_config()
+    config.project.n_jobs = 2
+    parallel = run(config, IRIS)
+    assert [(r.cv_mean, r.cv_std, r.test_score, r.best_params) for r in sequential] == [
+        (r.cv_mean, r.cv_std, r.test_score, r.best_params) for r in parallel
+    ]
+
+
 def test_random_search_samples_the_grid() -> None:
     config = iris_config(search="random", n_iter=1)
     results = run(config, IRIS)

@@ -141,7 +141,7 @@ preprocessing:
 ```
 
 ```bash
-fitrank run examples/titanic.yaml      # 8 candidates, about 40 s
+fitrank run examples/titanic.yaml      # 8 candidates, 15 to 40 s
 ```
 
 | # | model | reduction | cv f1_weighted | test f1_weighted | test roc_auc |
