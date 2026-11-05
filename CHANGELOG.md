@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   text columns and excluded columns, downloaded from OpenML by
   `scripts/make_example_data.py`. A "Real-world data: Titanic" section in the
   READMEs shows its leaderboard.
+- `project.n_jobs` runs the hyperparameter search on several CPU cores
+  (`-1` = all of them; default `1`). The results are the same; the Titanic
+  example goes from 26 s to 15 s on 12 cores, small datasets gain nothing.
+  Setting `n_jobs` in a model's `params` as well is refused, so cores are never
+  used twice.
 
 ### Fixed
 

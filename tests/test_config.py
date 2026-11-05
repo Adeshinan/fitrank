@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+from fitrank import config as config_module
 from fitrank.config import FitRankConfig, check_models, load_config, step_name
 from fitrank.exceptions import ConfigError, FitRankError
 
@@ -16,7 +17,7 @@ models: [{name: random_forest}]
 """
 
 # The Titanic example from the specification (section 5), with a feature list
-# instead of `exclude` and without `n_jobs` (planned for v1.1).
+# instead of `exclude` and without `n_jobs`.
 TITANIC = """
 project:
   name: titanic-survie
@@ -97,6 +98,7 @@ def test_minimal_config_gets_defaults(tmp_path: Path) -> None:
     assert cfg.data.path == Path("data.csv")
     assert cfg.data.features == "all"
     assert cfg.data.exclude == []
+    assert cfg.project.n_jobs == 1
     assert cfg.preprocessing == {}
     assert cfg.reduction == ["none"]
     assert cfg.models[0].name == "random_forest"
@@ -261,9 +263,25 @@ def test_unknown_key_in_a_preprocessing_group(tmp_path: Path) -> None:
     assert error.details == ["preprocessing.numeric.cols: unknown key (allowed: columns, steps)"]
 
 
-def test_keys_planned_for_v1_1_are_refused(tmp_path: Path) -> None:
-    assert load_error(tmp_path, with_extra("project: {n_jobs: -1}")).details == [
-        "project.n_jobs: not supported yet (planned for v1.1), remove this key"
+def test_keys_planned_for_a_later_release_are_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setitem(config_module._PLANNED_KEYS, ("project", "colour"), "v9.0")
+    assert load_error(tmp_path, with_extra("project: {colour: blue}")).details == [
+        "project.colour: not supported yet (planned for v9.0), remove this key"
+    ]
+
+
+@pytest.mark.parametrize("n_jobs", [1, 4, -1])
+def test_n_jobs(tmp_path: Path, n_jobs: int) -> None:
+    cfg = load_config(write(tmp_path, with_extra(f"project: {{n_jobs: {n_jobs}}}")))
+    assert cfg.project.n_jobs == n_jobs
+
+
+@pytest.mark.parametrize("n_jobs", [0, -2])
+def test_n_jobs_must_be_positive_or_minus_one(tmp_path: Path, n_jobs: int) -> None:
+    assert load_error(tmp_path, with_extra(f"project: {{n_jobs: {n_jobs}}}")).details == [
+        f"project.n_jobs: must be a positive number of cores, or -1 for all of them (got {n_jobs})"
     ]
 
 
@@ -486,6 +504,22 @@ def test_unknown_param_is_refused_with_a_suggestion() -> None:
         "models[0].params.n_estimator: unknown parameter for random_forest"
         " (did you mean 'n_estimators'? allowed: bootstrap, ccp_alpha,"
     )
+
+
+def test_model_n_jobs_is_allowed_when_the_search_is_sequential() -> None:
+    model = {"name": "random_forest", "params": {"n_jobs": [-1]}}
+    check_models(models_config("classification", model))
+
+
+def test_parallel_model_and_parallel_search_are_refused() -> None:
+    config = models_config("classification", {"name": "random_forest", "params": {"n_jobs": [-1]}})
+    config.project.n_jobs = -1
+    with pytest.raises(ConfigError) as info:
+        check_models(config)
+    assert info.value.details == [
+        "models[0].params.n_jobs: project.n_jobs already runs the search in parallel;"
+        " remove one of the two"
+    ]
 
 
 def test_step_name() -> None:

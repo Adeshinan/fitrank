@@ -13,6 +13,7 @@ project:
   name: iris                 # names the results folder: runs/iris_<date>_<time>/
   output_dir: runs           # optional: where results folders are created
   random_state: 42           # optional: same number = same split, same folds, same results
+  n_jobs: 1                  # optional: CPU cores for the search; -1 = all of them (same results)
 
 data:
   path: examples/data/iris.csv   # CSV, Excel (.xlsx) or Parquet; relative to the current folder

@@ -29,9 +29,7 @@ from fitrank.registry import TASKS, Task, get_model, list_models
 Loc = tuple[int | str, ...]
 
 # Keys from the specification whose feature ships in a later release.
-_PLANNED_KEYS: dict[Loc, str] = {
-    ("project", "n_jobs"): "v1.1",
-}
+_PLANNED_KEYS: dict[Loc, str] = {}
 
 _MESSAGES = {
     "greater_than": "must be greater than {gt}",
@@ -102,6 +100,14 @@ class ProjectConfig(_Section):
     name: str = "fitrank"
     output_dir: Path = Path("runs")
     random_state: int = 42
+    n_jobs: int = 1  # CPU cores for the search; -1 = all of them
+
+    @field_validator("n_jobs")
+    @classmethod
+    def _check_n_jobs(cls, value: int) -> int:
+        if value == 0 or value < -1:
+            raise ValueError("must be a positive number of cores, or -1 for all of them")
+        return value
 
 
 class DataConfig(_Section):
@@ -223,8 +229,9 @@ def check_models(config: FitRankConfig) -> None:
     """Check every declared model against the model registry.
 
     Raises:
-        ConfigError: a model is unknown, only exists for the other task, or
-            ``params`` names a parameter the model does not have.
+        ConfigError: a model is unknown, only exists for the other task,
+            ``params`` names a parameter the model does not have, or sets
+            ``n_jobs`` while ``project.n_jobs`` already runs in parallel.
     """
     allowed = list_models(config.task)
     choices = f"available for {config.task}: {', '.join(allowed) or 'none'}"
@@ -245,6 +252,12 @@ def check_models(config: FitRankConfig) -> None:
         if model.params:
             estimator, _ = get_model(model.name, config.task).factory()
             known = sorted(estimator.get_params())
+            if "n_jobs" in model.params and config.project.n_jobs != 1:
+                # Cores used twice: each search worker would start its own workers.
+                problems.append(
+                    f"models[{i}].params.n_jobs: project.n_jobs already runs the search"
+                    " in parallel; remove one of the two"
+                )
             for key in model.params:
                 if key not in known:
                     close = difflib.get_close_matches(key, known, n=1)
