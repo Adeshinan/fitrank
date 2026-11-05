@@ -203,6 +203,29 @@ print(model.predict(df.drop(columns="target").head()))
 `Benchmark.from_yaml("fitrank.yaml").run()` runs a YAML file. The keyword
 arguments are the YAML sections, and both ways give the same results.
 
+## Any scikit-learn model, by its class
+
+A model that FitRank does not name can be given by its class path:
+
+```yaml
+models:
+  - name: random_forest
+  - class: sklearn.ensemble.ExtraTreesClassifier
+    params: {n_estimators: [100, 300]}   # without params: its default parameters
+```
+
+It appears in the leaderboard as `ExtraTreesClassifier`. For safety, only
+classes from `sklearn` are imported: any other path (`os.system`,
+`builtins.eval`...) is refused before anything is imported. To use another
+scikit-learn compatible package that you trust, list it in the project:
+
+```yaml
+project:
+  allowed_modules: [xgboost, my_package.models]   # must be installed or importable
+models:
+  - class: xgboost.XGBClassifier
+```
+
 ## Add your own model
 
 ```python
@@ -223,8 +246,8 @@ results = Benchmark(
 ```
 
 A registered model is used by name, like the built-in ones. Reductions are
-added the same way with `register_reduction`. In v1.0 your own models are
-available from Python; loading them from the YAML file is planned for v1.1.
+added the same way with `register_reduction`. From the YAML file, give your
+model by its class path, with its package in `project.allowed_modules`.
 
 ## Available models and steps
 

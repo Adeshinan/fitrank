@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from fitrank import config as config_module
+from fitrank import registry
 from fitrank.config import FitRankConfig, check_models, load_config, step_name
 from fitrank.exceptions import ConfigError, FitRankError
 
@@ -249,7 +250,7 @@ def test_unknown_key_in_a_model(tmp_path: Path) -> None:
         """,
     )
 
-    assert error.details == ["models[0].grid: unknown key (allowed: name, params)"]
+    assert error.details == ["models[0].grid: unknown key (allowed: name, class, params)"]
 
 
 def test_unknown_key_in_a_preprocessing_group(tmp_path: Path) -> None:
@@ -520,6 +521,154 @@ def test_parallel_model_and_parallel_search_are_refused() -> None:
         "models[0].params.n_jobs: project.n_jobs already runs the search in parallel;"
         " remove one of the two"
     ]
+
+
+# --- Models by class path (EF-44, ENF-10) -----------------------------------------------------
+
+MY_MODELS = """
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.dummy import DummyClassifier
+
+
+class MyClassifier(ClassifierMixin, BaseEstimator):
+    def fit(self, X, y):
+        self.model_ = DummyClassifier().fit(X, y)
+        self.classes_ = self.model_.classes_
+        return self
+
+    def predict(self, X):
+        return self.model_.predict(X)
+"""
+
+
+def class_error(task: str, model: dict[str, Any], *, allowed: list[str] | None = None) -> str:
+    config = models_config(task, model)
+    config.project.allowed_modules = allowed or []
+    with pytest.raises(ConfigError) as info:
+        check_models(config)
+    (detail,) = info.value.details
+    return detail
+
+
+def test_scikit_learn_class_path_passes() -> None:
+    model = {"class": "sklearn.ensemble.ExtraTreesClassifier", "params": {"n_estimators": [10]}}
+    config = models_config("classification", model)
+    check_models(config)
+    assert config.models[0].class_ == "sklearn.ensemble.ExtraTreesClassifier"
+    assert config.models[0].label == "ExtraTreesClassifier"
+
+
+@pytest.mark.parametrize(
+    "path", ["os.system", "builtins.eval", "subprocess.Popen", "sklearnx.Model", "sklearn_evil.X"]
+)
+def test_path_outside_the_allowed_modules_is_refused_before_import(
+    path: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def no_import(name: str) -> None:
+        raise AssertionError(f"{name} was imported")
+
+    monkeypatch.setattr(registry.importlib, "import_module", no_import)
+    assert class_error("classification", {"class": path}) == (
+        f"models[0].class: {path!r} is outside the allowed modules (sklearn);"
+        " if you trust its package, add it to project.allowed_modules"
+    )
+
+
+@pytest.mark.parametrize(
+    "path", ["ExtraTreesClassifier", "sklearn.ensemble.ExtraTreesClassifier()", "sklearn..svm"]
+)
+def test_malformed_class_path_is_refused(path: str) -> None:
+    assert class_error("classification", {"class": path}) == (
+        f"models[0].class: {path!r} is not a class path; write it in full,"
+        " e.g. sklearn.ensemble.ExtraTreesClassifier"
+    )
+
+
+def test_unknown_class_is_refused_with_a_suggestion() -> None:
+    model = {"class": "sklearn.ensemble.ExtraTreeClassifier"}
+    assert class_error("classification", model) == (
+        "models[0].class: module 'sklearn.ensemble' has no class 'ExtraTreeClassifier';"
+        " did you mean 'ExtraTreesClassifier'?"
+    )
+
+
+def test_unknown_module_is_refused() -> None:
+    detail = class_error("classification", {"class": "sklearn.ensembel.ExtraTreesClassifier"})
+    assert detail.startswith("models[0].class: cannot import module 'sklearn.ensembel'")
+    assert detail.endswith("check the spelling, or install the package")
+
+
+@pytest.mark.parametrize(
+    ("task", "path", "message"),
+    [
+        ("classification", "sklearn.base.clone", "'sklearn.base.clone' is not a scikit-learn"
+         " estimator class"),
+        ("classification", "sklearn.ensemble.ExtraTreesRegressor", "ExtraTreesRegressor is not"
+         " a classifier, but task is 'classification'"),
+        ("regression", "sklearn.decomposition.PCA", "PCA is not a regressor, but task is"
+         " 'regression'"),
+    ],
+)  # fmt: skip
+def test_class_that_is_not_a_model_for_the_task_is_refused(
+    task: str, path: str, message: str
+) -> None:
+    assert class_error(task, {"class": path}) == f"models[0].class: {message}"
+
+
+def test_class_that_needs_arguments_is_refused() -> None:
+    detail = class_error("classification", {"class": "sklearn.ensemble.VotingClassifier"})
+    assert detail.startswith(
+        "models[0].class: VotingClassifier() cannot be created without arguments ("
+    )
+
+
+def test_unknown_param_of_a_class_names_the_class() -> None:
+    model = {"class": "sklearn.ensemble.ExtraTreesClassifier", "params": {"n_estimator": [10]}}
+    assert class_error("classification", model).startswith(
+        "models[0].params.n_estimator: unknown parameter for ExtraTreesClassifier"
+        " (did you mean 'n_estimators'?"
+    )
+
+
+def test_allowed_modules_lets_a_trusted_package_in(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "my_models.py").write_text(MY_MODELS, encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    model = {"class": "my_models.MyClassifier"}
+    assert "outside the allowed modules (sklearn)" in class_error("classification", model)
+    config = models_config("classification", model)
+    config.project.allowed_modules = ["my_models"]
+    check_models(config)
+
+
+@pytest.mark.parametrize("module", ["", "my models", "my_models."])
+def test_allowed_modules_must_be_module_names(tmp_path: Path, module: str) -> None:
+    error = load_error(tmp_path, with_extra(f"project: {{allowed_modules: ['{module}']}}"))
+    assert error.details == [
+        f"project.allowed_modules: {module!r} is not a module name,"
+        " e.g. xgboost or my_package.models"
+    ]
+
+
+def test_model_needs_a_name_or_a_class(tmp_path: Path) -> None:
+    error = load_error(
+        tmp_path,
+        "data: {path: d.csv, target: y}\ntask: classification\nmodels: [{params: {C: [1]}}]\n",
+    )
+    assert error.details == [
+        "models[0]: give a model name (e.g. name: random_forest) or a class path"
+        " (e.g. class: sklearn.ensemble.ExtraTreesClassifier)"
+    ]
+
+
+def test_model_cannot_have_a_name_and_a_class(tmp_path: Path) -> None:
+    error = load_error(
+        tmp_path,
+        "data: {path: d.csv, target: y}\ntask: classification\n"
+        "models: [{name: svm, class: sklearn.svm.SVC}]\n",
+    )
+    assert error.details == ["models[0]: give name or class, not both"]
 
 
 def test_step_name() -> None:

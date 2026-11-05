@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   example goes from 26 s to 15 s on 12 cores, small datasets gain nothing.
   Setting `n_jobs` in a model's `params` as well is refused, so cores are never
   used twice.
+- Models by class path: `class: sklearn.ensemble.ExtraTreesClassifier` uses any
+  scikit-learn estimator without writing Python; it is named after its class in
+  the leaderboard. Only `sklearn` classes are imported, plus the packages listed
+  in `project.allowed_modules`; any other path (`os.system`...) is refused before
+  anything is imported. A class that does not exist, is not an estimator or
+  does not match the task is a clear error.
 
 ### Fixed
 

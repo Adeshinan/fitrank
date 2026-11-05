@@ -24,7 +24,15 @@ from pydantic_core import ErrorDetails
 from sklearn.metrics import get_scorer_names
 
 from fitrank.exceptions import ConfigError
-from fitrank.registry import TASKS, Task, get_model, list_models
+from fitrank.registry import (
+    MODULE_PATH,
+    TASKS,
+    ModelSpec,
+    Task,
+    get_model,
+    import_model,
+    list_models,
+)
 
 Loc = tuple[int | str, ...]
 
@@ -101,12 +109,23 @@ class ProjectConfig(_Section):
     output_dir: Path = Path("runs")
     random_state: int = 42
     n_jobs: int = 1  # CPU cores for the search; -1 = all of them
+    allowed_modules: list[str] = []  # packages models.class may import, besides sklearn
 
     @field_validator("n_jobs")
     @classmethod
     def _check_n_jobs(cls, value: int) -> int:
         if value == 0 or value < -1:
             raise ValueError("must be a positive number of cores, or -1 for all of them")
+        return value
+
+    @field_validator("allowed_modules")
+    @classmethod
+    def _check_allowed_modules(cls, value: list[str]) -> list[str]:
+        for module in value:
+            if not MODULE_PATH.fullmatch(module):
+                raise ValueError(
+                    f"{module!r} is not a module name, e.g. xgboost or my_package.models"
+                )
         return value
 
 
@@ -141,8 +160,25 @@ class PreprocessingGroup(_Section):
 
 
 class ModelConfig(_Section):
-    name: str
+    name: str | None = None  # a FitRank model, e.g. random_forest
+    class_: str | None = Field(default=None, alias="class")  # or a class path
     params: dict[str, list[Any]] | None = None  # None = the model's default grid
+
+    @model_validator(mode="after")
+    def _check_name_or_class(self) -> "ModelConfig":
+        if self.name is not None and self.class_ is not None:
+            raise ValueError("give name or class, not both")
+        if self.name is None and self.class_ is None:
+            raise ValueError(
+                "give a model name (e.g. name: random_forest) or a class path"
+                " (e.g. class: sklearn.ensemble.ExtraTreesClassifier)"
+            )
+        return self
+
+    @property
+    def label(self) -> str:
+        """The name shown in the leaderboard: ``ExtraTreesClassifier`` for a class path."""
+        return self.name or str(self.class_).rsplit(".", 1)[-1]
 
 
 class EvaluationConfig(_Section):
@@ -226,10 +262,11 @@ def validate_config(raw: dict[str, Any], source: str) -> FitRankConfig:
 
 
 def check_models(config: FitRankConfig) -> None:
-    """Check every declared model against the model registry.
+    """Check every declared model against the model registry, or import its class.
 
     Raises:
-        ConfigError: a model is unknown, only exists for the other task,
+        ConfigError: a model is unknown, only exists for the other task, has
+            a class path that is not allowed or not an estimator for the task,
             ``params`` names a parameter the model does not have, or sets
             ``n_jobs`` while ``project.n_jobs`` already runs in parallel.
     """
@@ -237,7 +274,13 @@ def check_models(config: FitRankConfig) -> None:
     choices = f"available for {config.task}: {', '.join(allowed) or 'none'}"
     problems = []
     for i, model in enumerate(config.models):
-        if model.name not in allowed:
+        if model.class_ is not None:
+            try:
+                spec = model_spec(model, config)
+            except ValueError as exc:
+                problems.append(f"models[{i}].class: {exc}")
+                continue
+        elif model.name not in allowed:
             other = [task for task in TASKS if model.name in list_models(task)]
             if other:
                 problems.append(
@@ -245,12 +288,14 @@ def check_models(config: FitRankConfig) -> None:
                     f" but task is {config.task!r} ({choices})"
                 )
             else:
-                close = difflib.get_close_matches(model.name, allowed, n=1)
+                close = difflib.get_close_matches(model.label, allowed, n=1)
                 hint = f"did you mean {close[0]!r}? " if close else ""
                 problems.append(f"models[{i}].name: unknown model {model.name!r} ({hint}{choices})")
             continue
+        else:
+            spec = model_spec(model, config)
         if model.params:
-            estimator, _ = get_model(model.name, config.task).factory()
+            estimator, _ = spec.factory()
             known = sorted(estimator.get_params())
             if "n_jobs" in model.params and config.project.n_jobs != 1:
                 # Cores used twice: each search worker would start its own workers.
@@ -263,11 +308,23 @@ def check_models(config: FitRankConfig) -> None:
                     close = difflib.get_close_matches(key, known, n=1)
                     hint = f"did you mean {close[0]!r}? " if close else ""
                     problems.append(
-                        f"models[{i}].params.{key}: unknown parameter for {model.name}"
+                        f"models[{i}].params.{key}: unknown parameter for {model.label}"
                         f" ({hint}allowed: {', '.join(known)})"
                     )
     if problems:
         raise ConfigError(f"some models cannot be used for {config.task}", problems)
+
+
+def model_spec(model: ModelConfig, config: FitRankConfig) -> ModelSpec:
+    """The registered model named by ``model``, or the one imported from its class path.
+
+    Raises:
+        ConfigError: no model with this name for the task.
+        ValueError: the class path cannot be used (see ``import_model``).
+    """
+    if model.class_ is not None:
+        return import_model(model.class_, config.task, config.project.allowed_modules)
+    return get_model(str(model.name), config.task)
 
 
 def _describe_yaml_error(exc: yaml.YAMLError) -> str:
@@ -323,7 +380,7 @@ def _show(value: Any) -> str:
 
 
 def _allowed_keys(model: type[BaseModel]) -> str:
-    return ", ".join(model.model_fields)
+    return ", ".join(field.alias or name for name, field in model.model_fields.items())
 
 
 def _section_at(loc: Loc) -> type[BaseModel] | None:
@@ -339,7 +396,8 @@ def _section_at(loc: Loc) -> type[BaseModel] | None:
 def _child(annotation: Any, part: int | str) -> Any:
     model = _as_model(annotation)
     if model is not None:
-        field = model.model_fields.get(str(part))
+        fields = {field.alias or name: field for name, field in model.model_fields.items()}
+        field = fields.get(str(part))
         return None if field is None else field.annotation
     origin = get_origin(annotation)
     if origin is list:
