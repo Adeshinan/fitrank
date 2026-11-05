@@ -104,6 +104,24 @@ def test_models_by_name() -> None:
     assert [m.name for m in single.config.models] == ["ridge"]
 
 
+def test_model_by_class_path_is_ranked(workdir: Path) -> None:
+    models = [
+        {"name": "logistic_regression", "params": {"C": [1]}},
+        {"class": "sklearn.ensemble.ExtraTreesClassifier", "params": {"n_estimators": [20]}},
+        {
+            "class": "sklearn.discriminant_analysis.LinearDiscriminantAnalysis"
+        },  # empty grid: default parameters
+    ]
+    results = Benchmark(**(IRIS_ARGS | {"models": models}), data="iris.csv").run(export=False)
+    board = results.leaderboard()
+    assert set(board["model"]) == {
+        "logistic_regression",
+        "ExtraTreesClassifier",
+        "LinearDiscriminantAnalysis",
+    }
+    assert (board["status"] == "ok").all()
+
+
 def test_bad_arguments_raise_config_error() -> None:
     with pytest.raises(
         ConfigError, match="invalid configuration in the Benchmark arguments"

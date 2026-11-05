@@ -14,11 +14,11 @@ from typing import Any
 from sklearn.base import clone
 from sklearn.pipeline import Pipeline
 
-from fitrank.config import FitRankConfig, check_models
+from fitrank.config import FitRankConfig, check_models, model_spec
 from fitrank.exceptions import ConfigError
 from fitrank.preprocessing import build_preprocessing
 from fitrank.reduction import build_reduction
-from fitrank.registry import Grid, get_model
+from fitrank.registry import Grid
 
 
 @dataclass
@@ -63,9 +63,7 @@ def build_candidates(config: FitRankConfig) -> list[Candidate]:
     candidates = []
     for reduction_name, reduction, reduction_grid in reductions:
         for model in config.models:
-            estimator, model_grid = get_model(model.name, config.task).build(
-                model.params, random_state
-            )
+            estimator, model_grid = model_spec(model, config).build(model.params, random_state)
             pipeline = Pipeline(
                 [
                     ("preprocessing", clone(preprocessing)),
@@ -74,7 +72,7 @@ def build_candidates(config: FitRankConfig) -> list[Candidate]:
                 ]
             )
             grid = _prefixed("reduction", reduction_grid) | _prefixed("model", model_grid)
-            candidates.append(Candidate(model.name, reduction_name, pipeline, grid))
+            candidates.append(Candidate(model.label, reduction_name, pipeline, grid))
     return candidates
 
 

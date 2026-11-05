@@ -252,7 +252,11 @@ def _new_run_dir(root: Path, name: str, now: datetime) -> Path:
 
 
 def _config_dict(config: FitRankConfig) -> dict[str, Any]:
-    data = config.model_dump(mode="json")
+    data = config.model_dump(mode="json", by_alias=True)  # models[].class, not class_
+    for model in data["models"]:  # keep only the key that names the model
+        for key in ("name", "class"):
+            if model[key] is None:
+                del model[key]
     data["data"]["path"] = config.data.path.as_posix()  # same file on every OS
     data["project"]["output_dir"] = config.project.output_dir.as_posix()
     return data

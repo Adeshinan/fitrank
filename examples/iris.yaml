@@ -14,6 +14,7 @@ project:
   output_dir: runs           # optional: where results folders are created
   random_state: 42           # optional: same number = same split, same folds, same results
   n_jobs: 1                  # optional: CPU cores for the search; -1 = all of them (same results)
+  # allowed_modules: [xgboost] # optional: packages that models[].class may import, besides sklearn
 
 data:
   path: examples/data/iris.csv   # CSV, Excel (.xlsx) or Parquet; relative to the current folder
@@ -47,6 +48,8 @@ models:
   - name: svm
   - name: random_forest
     params: {n_estimators: [100], max_depth: [null, 3]}  # 2 combinations; null = no limit
+  # Any other scikit-learn model, by its class path (its default parameters without params):
+  # - class: sklearn.ensemble.ExtraTreesClassifier
 
 evaluation:
   test_size: 0.2             # optional: 20 % of the rows are kept aside for the final test score

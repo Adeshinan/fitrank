@@ -211,6 +211,30 @@ print(model.predict(df.drop(columns="target").head()))
 arguments nommés reprennent les sections du YAML, et les deux façons donnent
 les mêmes résultats.
 
+## N'importe quel modèle scikit-learn, par sa classe
+
+Un modèle que FitRank ne nomme pas peut être donné par le chemin de sa classe :
+
+```yaml
+models:
+  - name: random_forest
+  - class: sklearn.ensemble.ExtraTreesClassifier
+    params: {n_estimators: [100, 300]}   # sans params : ses paramètres par défaut
+```
+
+Il apparaît dans le classement sous le nom `ExtraTreesClassifier`. Par sécurité,
+seules les classes de `sklearn` sont importées : tout autre chemin (`os.system`,
+`builtins.eval`...) est refusé avant le moindre import. Pour utiliser un autre
+paquet compatible scikit-learn en qui vous avez confiance, déclarez-le dans le
+projet :
+
+```yaml
+project:
+  allowed_modules: [xgboost, mon_paquet.modeles]   # installé ou importable
+models:
+  - class: xgboost.XGBClassifier
+```
+
 ## Ajouter son propre modèle
 
 ```python
@@ -231,9 +255,9 @@ results = Benchmark(
 ```
 
 Un modèle enregistré s'utilise par son nom, comme les modèles fournis. Les
-réductions s'ajoutent de la même façon avec `register_reduction`. En v1.0, vos
-propres modèles sont disponibles depuis Python ; les charger depuis le fichier
-YAML est prévu pour la v1.1.
+réductions s'ajoutent de la même façon avec `register_reduction`. Depuis le
+fichier YAML, donnez votre modèle par le chemin de sa classe, avec son paquet
+dans `project.allowed_modules`.
 
 ## Modèles et étapes disponibles
 

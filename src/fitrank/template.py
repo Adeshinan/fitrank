@@ -94,7 +94,8 @@ def render_config(
         "",
         f"# Models by name: `fitrank list models --task {task}` shows them all.",
         "# Without params, a small default grid is searched; params: {name: [values]}",
-        "# replaces it.",
+        "# replaces it. Other scikit-learn models are given by their class path:",
+        "#   - class: sklearn.ensemble.ExtraTreesClassifier",
         "models:",
         *(f"  - name: {name}" for name in models),
     ]
