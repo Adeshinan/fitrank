@@ -4,10 +4,12 @@
 [![PyPI](https://img.shields.io/pypi/v/fitrank)](https://pypi.org/project/fitrank/)
 [![Python](https://img.shields.io/pypi/pyversions/fitrank)](https://pypi.org/project/fitrank/)
 [![Licence : MIT](https://img.shields.io/badge/licence-MIT-blue)](https://github.com/Adeshinan/fitrank/blob/main/LICENSE)
+[![Docs](https://img.shields.io/badge/docs-adeshinan.github.io%2Ffitrank-indigo)](https://adeshinan.github.io/fitrank/fr/)
 
 **Comparer des modèles scikit-learn de façon reproductible, à partir d'un fichier de configuration. Aucun prétraitement caché.**
 
-[English](https://github.com/Adeshinan/fitrank/blob/main/README.md) · Français
+[English](https://github.com/Adeshinan/fitrank/blob/main/README.md) · Français ·
+**[Documentation](https://adeshinan.github.io/fitrank/fr/)**
 
 FitRank entraîne plusieurs modèles scikit-learn sur vos données tabulaires,
 règle les hyperparamètres de chacun et les classe dans un tableau. Toute
@@ -274,6 +276,12 @@ dans `project.allowed_modules`.
 Chaque modèle a une petite grille par défaut ; `params` dans le YAML la
 remplace. Les métriques portent les [noms de scorers de scikit-learn](https://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter) :
 `f1_weighted` classe la classification par défaut, la RMSE classe la régression.
+
+## Documentation
+
+La documentation complète, en français et en anglais, est sur
+**https://adeshinan.github.io/fitrank/fr/** : un démarrage rapide, la référence
+de chaque clé YAML, les modèles, la ligne de commande, l'API Python et une FAQ.
 
 ## Contribuer
 
