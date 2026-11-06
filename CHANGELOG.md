@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-06
+
+Easier to start, safer to extend, and documented: `fitrank init`, models by
+class path, parallel search, and a bilingual documentation site.
+
 ### Added
 
 - `fitrank init` writes a commented starter config. With `--data` and `--target`,
@@ -93,6 +98,7 @@ data from a single YAML file.
 
 - Package skeleton published to reserve the `fitrank` name on PyPI.
 
-[Unreleased]: https://github.com/Adeshinan/fitrank/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Adeshinan/fitrank/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Adeshinan/fitrank/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Adeshinan/fitrank/compare/v0.1.0...v1.0.0
 [0.1.0]: https://github.com/Adeshinan/fitrank/releases/tag/v0.1.0
