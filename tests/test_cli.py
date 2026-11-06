@@ -110,6 +110,24 @@ def test_validate_does_not_train(workdir: Path) -> None:
     assert not (workdir / "runs").exists()
 
 
+def test_validate_warns_when_the_target_does_not_match_the_task(workdir: Path) -> None:
+    text = IRIS_YAML.replace("task: classification", "task: regression")
+    text = text.replace("target: species", "target: petal_width")
+    text = text.replace("sepal_length, sepal_width, petal_length, petal_width", "sepal_length")
+    text = text.split("models:")[0] + "models: [{name: ridge}]\n"
+    write_config(workdir / "iris.yaml", text)
+    frame = pd.read_csv(workdir / "iris.csv")
+    frame["petal_width"] = (frame["petal_width"] > 1).astype(int)  # a 0/1 target
+    frame.drop(columns="species").to_csv(workdir / "iris.csv", index=False)
+    result = runner.invoke(app, ["validate", "iris.yaml"])
+    assert result.exit_code == 0, result.output  # a warning never blocks
+    assert (
+        "Warning: target 'petal_width' looks categorical (2 distinct values) but task is"
+        " 'regression'" in " ".join(result.output.split())
+    )
+    assert "Config OK" in result.output
+
+
 # --- init ------------------------------------------------------------------------------------
 
 

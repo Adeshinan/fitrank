@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in `project.allowed_modules`; any other path (`os.system`...) is refused before
   anything is imported. A class that does not exist, is not an estimator or
   does not match the task is a clear error.
+- A warning (never an error) when the target does not look like the task:
+  regression on text, true/false or two values, or classification on a number
+  with many distinct values (more than 20 and more than 5 % of the rows).
+  `fitrank validate` and `fitrank run` show it in yellow, then continue.
 
 ### Fixed
 

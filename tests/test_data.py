@@ -1,5 +1,6 @@
 """Tests for loading the data and checking it before training."""
 
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -7,10 +8,12 @@ import pandas as pd
 import pytest
 
 from fitrank.config import DataConfig, FitRankConfig
-from fitrank.data import check_data, load_dataframe, split_features_target
-from fitrank.exceptions import DataError, FitRankError
+from fitrank.data import check_data, check_task, load_dataframe, split_features_target
+from fitrank.exceptions import DataError, FitRankError, FitRankWarning
+from fitrank.registry import Task
 
 FIXTURES = Path(__file__).parent / "fixtures"
+EXAMPLES = Path(__file__).resolve().parents[1] / "examples" / "data"
 
 
 def make_config(**overrides: Any) -> FitRankConfig:
@@ -328,3 +331,61 @@ def test_empty_data_is_refused() -> None:
     X = pd.DataFrame({"a": pd.Series([], dtype=float)})
     with pytest.raises(DataError, match="the data has no rows"):
         check_data(X, pd.Series([], dtype=float, name="y"), make_config())
+
+
+# --- Task and target (warnings only) ---------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("values", "n_values"),
+    [(["yes", "no", "yes", "maybe"], 3), ([1, 0, 0, 1], 2), ([True, False, True, True], 2)],
+)
+def test_regression_on_a_categorical_target_warns(values: list[Any], n_values: int) -> None:
+    with pytest.warns(UserWarning) as record:
+        check_task(pd.Series(values, name="Survived"), "regression")
+    (warning,) = record
+    assert warning.category is FitRankWarning
+    assert str(warning.message) == (
+        f"target 'Survived' looks categorical ({n_values} distinct values) but task is"
+        " 'regression'; use task: classification to predict a category"
+    )
+
+
+def test_classification_on_a_continuous_target_warns() -> None:
+    y = pd.Series([i * 1.5 for i in range(100)], name="price")
+    with pytest.warns(FitRankWarning) as record:
+        check_task(y, "classification")
+    assert str(record[0].message) == (
+        "target 'price' looks continuous (100 distinct values) but task is 'classification';"
+        " use task: regression to predict a number"
+    )
+
+
+@pytest.mark.parametrize(
+    ("values", "task"),
+    [
+        (list(range(20)) * 5, "classification"),  # 20 distinct values: not more than 20
+        (list(range(25)) * 40, "classification"),  # 25 values but 2.5 % of 1000 rows
+        ([f"c{i}" for i in range(100)], "classification"),  # many labels, but text
+        ([0, 1, 2, 3.5], "regression"),
+    ],
+)
+def test_plausible_target_does_not_warn(values: list[Any], task: Task) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        check_task(pd.Series(values, name="y"), task)
+
+
+@pytest.mark.parametrize(
+    ("name", "target", "task"),
+    [
+        ("iris.csv", "species", "classification"),
+        ("diabetes.csv", "progression", "regression"),
+        ("titanic.csv", "Survived", "classification"),
+    ],
+)
+def test_examples_do_not_warn(name: str, target: str, task: Task) -> None:
+    y = load_dataframe(EXAMPLES / name)[target]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        check_task(y, task)

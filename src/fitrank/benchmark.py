@@ -22,7 +22,7 @@ from typing import Any, Literal
 import pandas as pd
 
 from fitrank.config import FitRankConfig, load_config, validate_config
-from fitrank.data import check_data, load_dataframe, split_features_target
+from fitrank.data import check_data, check_task, load_dataframe, split_features_target
 from fitrank.evaluation import CandidateResult, evaluate, split_data
 from fitrank.pipeline import Candidate, build_candidates
 from fitrank.registry import Task
@@ -127,6 +127,7 @@ class Benchmark:
         else:
             frame, source = load_dataframe(self.config.data.path), None
         X, y = split_features_target(frame, self.config.data, source=source)
+        check_task(y, self.config.task)  # a warning only: the task is the user's choice
         check_data(X, y, self.config)
         split_data(X, y, self.config)  # rare classes, too few rows for the folds
         return Plan(X, y, candidates)

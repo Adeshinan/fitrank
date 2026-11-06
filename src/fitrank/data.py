@@ -5,6 +5,7 @@ imputer and text columns need an encoder, both declared in the configuration.
 """
 
 import difflib
+import warnings
 import zipfile
 from collections.abc import Callable, Hashable, Sequence
 from pathlib import Path
@@ -12,7 +13,8 @@ from pathlib import Path
 import pandas as pd
 
 from fitrank.config import DataConfig, FitRankConfig, step_name
-from fitrank.exceptions import DataError
+from fitrank.exceptions import DataError, FitRankWarning
+from fitrank.registry import Task
 
 # File extension -> (reader, optional extra that provides the reader's engine).
 _READERS: dict[str, tuple[Callable[[Path], pd.DataFrame], str | None]] = {
@@ -22,6 +24,10 @@ _READERS: dict[str, tuple[Callable[[Path], pd.DataFrame], str | None]] = {
 }
 
 _MAX_COLUMNS_SHOWN = 20
+
+# A numeric target with more distinct values than both limits looks continuous.
+_CONTINUOUS_MIN_VALUES = 20
+_CONTINUOUS_MIN_SHARE = 0.05
 
 
 def load_dataframe(source: str | Path | pd.DataFrame) -> pd.DataFrame:
@@ -152,6 +158,38 @@ def check_data(X: pd.DataFrame, y: pd.Series, config: FitRankConfig) -> None:
             problems,
             hint=_preprocessing_hint(X, need_imputer, need_encoder),
         )
+
+
+def check_task(y: pd.Series, task: Task) -> None:
+    """Warn when the target does not look like the declared task; never blocks.
+
+    Regression on text, true/false or two values, and classification on a
+    number with many distinct values (more than 20 and more than 5 % of the
+    rows), are most likely a wrong ``task``.
+    """
+    n_values = int(y.nunique())
+    if task == "regression":
+        categorical = is_text(y) or pd.api.types.is_bool_dtype(y) or n_values <= 2
+        if not categorical:
+            return
+        message = (
+            f"target {y.name!r} looks categorical ({n_values} distinct values)"
+            " but task is 'regression'; use task: classification to predict a category"
+        )
+    else:
+        continuous = (
+            pd.api.types.is_numeric_dtype(y)
+            and not pd.api.types.is_bool_dtype(y)
+            and n_values > _CONTINUOUS_MIN_VALUES
+            and n_values > _CONTINUOUS_MIN_SHARE * len(y)
+        )
+        if not continuous:
+            return
+        message = (
+            f"target {y.name!r} looks continuous ({n_values} distinct values)"
+            " but task is 'classification'; use task: regression to predict a number"
+        )
+    warnings.warn(message, FitRankWarning, stacklevel=3)
 
 
 def _not_found(missing: Sequence[tuple[Hashable, str]], columns: pd.Index, where: str) -> DataError:
