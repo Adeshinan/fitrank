@@ -27,7 +27,7 @@ from fitrank.benchmark import Benchmark
 from fitrank.config import DataConfig
 from fitrank.data import is_text, load_dataframe, split_features_target
 from fitrank.evaluation import CandidateResult, display_name, higher_is_better
-from fitrank.exceptions import ConfigError, DataError, FitRankError
+from fitrank.exceptions import ConfigError, DataError, FitRankError, FitRankWarning
 from fitrank.reduction import list_reductions
 from fitrank.registry import TASKS, list_models
 from fitrank.results import Results, load_model
@@ -88,7 +88,7 @@ def run(
 ) -> None:
     """Evaluate every candidate, show the leaderboard and save the run folder."""
     options: Options = ctx.obj
-    with _user_errors(options):
+    with _user_errors(options), _fitrank_warnings():
         results = _run(Benchmark.from_yaml(config), options)
 
     if not console.is_terminal:  # a file or a pipe: no terminal width to fit in
@@ -112,7 +112,7 @@ def validate(
     config: Annotated[Path, typer.Argument(help="The YAML config file.")],
 ) -> None:
     """Check the config and the data without training anything."""
-    with _user_errors(ctx.obj):
+    with _user_errors(ctx.obj), _fitrank_warnings():
         bench = Benchmark.from_yaml(config)
         plan = bench.validate()
     cfg = bench.config
@@ -217,12 +217,8 @@ def predict(
 ) -> None:
     """Predict new data with a saved model; adds a 'prediction' column."""
     options: Options = ctx.obj
-    with _user_errors(options):
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            pipeline = load_model(model)
-        for warning in caught:
-            err_console.print(Text(f"Warning: {warning.message}", "yellow"))
+    with _user_errors(options), _fitrank_warnings():
+        pipeline = load_model(model)
         frame = load_dataframe(data)
         predictions = _predict(pipeline, frame, data)
 
@@ -245,6 +241,23 @@ def _user_errors(options: Options) -> Iterator[None]:
             err_console.print_exception()
         err_console.print(Text(f"Error: {exc}", "red"))
         raise typer.Exit(EXIT_DATA if isinstance(exc, DataError) else EXIT_CONFIG) from None
+
+
+@contextmanager
+def _fitrank_warnings() -> Iterator[None]:
+    """Show FitRank warnings in yellow as they happen; other warnings are unchanged."""
+    original = warnings.showwarning
+
+    def show(message: Warning | str, category: type[Warning], *args: Any, **kwargs: Any) -> None:
+        if issubclass(category, FitRankWarning):
+            err_console.print(Text(f"Warning: {message}", "yellow"))
+        else:
+            original(message, category, *args, **kwargs)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("always", FitRankWarning)
+        warnings.showwarning = show
+        yield
 
 
 def _run(bench: Benchmark, options: Options) -> Results:
