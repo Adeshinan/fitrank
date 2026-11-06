@@ -23,10 +23,11 @@ pytestmark = pytest.mark.skipif(not DOCS.is_dir(), reason="docs/ is not in the s
 
 
 def test_every_page_exists_in_both_languages() -> None:
-    pages = {path.name.split(".")[0] for path in DOCS.glob("*.md")}
+    pages = {path.with_name(path.name.split(".")[0]) for path in DOCS.rglob("*.md")}
     for page in pages:
         for language in LANGUAGES:
-            assert (DOCS / f"{page}.{language}.md").is_file(), f"{page}.{language}.md is missing"
+            path = page.with_name(f"{page.name}.{language}.md")
+            assert path.is_file(), f"{path.relative_to(DOCS)} is missing"
 
 
 @pytest.mark.parametrize("language", LANGUAGES)

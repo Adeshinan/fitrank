@@ -66,6 +66,7 @@ files `pip install "fitrank[parquet]"`.
 - [Configuration reference](configuration.md): every YAML key, its type and default.
 - [Models](models.md): the built-in models, any scikit-learn class, your own models.
 - [Command line](cli.md) and [Python API](api.md).
+- Guides: [Classification or regression?](guides/task.md) and [Choosing a metric](guides/metrics.md).
 - [FAQ](faq.md).
 
 FitRank is open source (MIT). The code, the issues and the changelog are on

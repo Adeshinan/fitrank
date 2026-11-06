@@ -40,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   quick start, configuration reference (every key, type and default), models,
   command line, Python API (generated from the docstrings) and FAQ. Install the
   tools with `pip install "fitrank[docs]"`.
+- Two guides on the documentation site, in English and French: "Classification
+  or regression?" and "Choosing a metric" (what each metric measures, its
+  traps, and how the choice changes the ranking).
 
 ### Fixed
 

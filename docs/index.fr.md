@@ -68,6 +68,7 @@ les fichiers Parquet `pip install "fitrank[parquet]"`.
 - [Référence de la configuration](configuration.md) : chaque clé YAML, son type et sa valeur par défaut.
 - [Modèles](models.md) : les modèles fournis, n'importe quelle classe scikit-learn, vos propres modèles.
 - [Ligne de commande](cli.md) et [API Python](api.md).
+- Guides : [Classification ou régression ?](guides/task.md) et [Choisir une métrique](guides/metrics.md).
 - [FAQ](faq.md).
 
 FitRank est open source (MIT). Le code, les issues et le journal des
