@@ -63,12 +63,14 @@ You decide: the warning never blocks.
 
 ## Which metric should I choose?
 
-The default ranks classification with `f1_weighted` (robust when classes are
-unbalanced) and regression with the RMSE (an error in the unit of the target).
+The default ranks classification with `f1_weighted` (it works with any number
+of classes, but hides a rare class) and regression with the RMSE (an error in
+the unit of the target).
 Choose the one that matches the mistake that costs you the most, for example
 `recall_weighted` when missing a positive case is worse than a false alarm.
 Any [scikit-learn scorer name](https://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter)
-works.
+works. The guide [Choosing a metric](guides/metrics.md) compares them, with
+examples.
 
 ## Does FitRank handle images or free text?
 

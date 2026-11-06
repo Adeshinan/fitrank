@@ -68,7 +68,8 @@ missing target are reported, never dropped.
 `classification` (predict a category: survived or not, a species...) or
 `regression` (predict a number: a price, a duration...). You decide: FitRank
 only warns, without stopping, when the target does not look like the task,
-for example a regression on a target with two values.
+for example a regression on a target with two values. Not sure? See
+[Classification or regression?](guides/task.md)
 
 ## preprocessing
 
@@ -168,8 +169,10 @@ Without `metrics`, classification reports `accuracy`, `precision_weighted` and
 - Errors (names starting with `neg_`) are shown positive, and lower is better:
   the leaderboard says `root_mean_squared_error`.
 - For classification, the split and the folds keep the share of each class.
-- A metric that needs a method the model lacks (e.g. `roc_auc` and
-  `predict_proba`) is skipped for that model, with a note.
+- A metric that needs a method the model lacks (e.g. `neg_log_loss`, which
+  needs `predict_proba`, on `svm`) is skipped for that model, with a note.
+
+Not sure which metric fits your problem? See [Choosing a metric](guides/metrics.md).
 
 ## output
 

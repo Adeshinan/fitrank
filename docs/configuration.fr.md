@@ -71,7 +71,7 @@ supprimées.
 `regression` (prédire un nombre : un prix, une durée...). C'est vous qui
 décidez : FitRank avertit seulement, sans s'arrêter, quand la cible ne
 ressemble pas à la tâche, par exemple une régression sur une cible à deux
-valeurs.
+valeurs. Vous hésitez ? Voir [Classification ou régression ?](guides/task.md)
 
 ## preprocessing
 
@@ -175,7 +175,10 @@ Sans `metrics`, la classification affiche `accuracy`, `precision_weighted` et
   plus bas est meilleur : le classement écrit `root_mean_squared_error`.
 - En classification, le découpage et les plis gardent la part de chaque classe.
 - Une métrique qui demande une méthode absente du modèle (par exemple
-  `roc_auc` et `predict_proba`) est sautée pour ce modèle, avec une note.
+  `neg_log_loss`, qui demande `predict_proba`, sur `svm`) est sautée pour ce
+  modèle, avec une note.
+
+Vous hésitez sur la métrique ? Voir [Choisir une métrique](guides/metrics.md).
 
 ## output
 

@@ -67,13 +67,14 @@ qui décidez : l'avertissement ne bloque jamais.
 
 ## Quelle métrique choisir ?
 
-Par défaut, la classification est classée avec `f1_weighted` (robuste quand
-les classes sont déséquilibrées) et la régression avec la RMSE (une erreur dans
-l'unité de la cible). Choisissez celle qui correspond à l'erreur qui vous coûte
+Par défaut, la classification est classée avec `f1_weighted` (il fonctionne
+quel que soit le nombre de classes, mais cache une classe rare) et la
+régression avec la RMSE (une erreur dans l'unité de la cible). Choisissez celle qui correspond à l'erreur qui vous coûte
 le plus, par exemple `recall_weighted` quand rater un cas positif est pire
 qu'une fausse alerte. N'importe quel
 [nom de scorer scikit-learn](https://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter)
-fonctionne.
+fonctionne. Le guide [Choisir une métrique](guides/metrics.md) les compare, avec
+des exemples.
 
 ## FitRank traite-t-il les images ou le texte libre ?
 

@@ -52,6 +52,9 @@ plugins:
             Models: Modèles
             Command line: Ligne de commande
             Python API: API Python
+            Guides: Guides
+            Classification or regression?: Classification ou régression ?
+            Choosing a metric: Choisir une métrique
             FAQ: FAQ
   - mkdocstrings:
       handlers:
@@ -92,4 +95,7 @@ nav:
   - Models: models.md
   - Command line: cli.md
   - Python API: api.md
+  - Guides:
+      - Classification or regression?: guides/task.md
+      - Choosing a metric: guides/metrics.md
   - FAQ: faq.md
