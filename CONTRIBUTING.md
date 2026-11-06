@@ -101,7 +101,22 @@ def extra_trees() -> tuple[ExtraTreesClassifier, Grid]:
 ```
 
 Keep the default grid small (a first run must stay fast), add the model to the
-tables of `README.md` and `README.fr.md`, and add a test.
+tables of `README.md`, `README.fr.md`, `docs/models.en.md` and `docs/models.fr.md`
+(a test checks the docs), and add a test.
+
+## Documentation
+
+The site lives in `docs/`: each page exists in English (`page.en.md`) and in
+French (`page.fr.md`). The Python API reference is generated from the
+docstrings.
+
+```bash
+pip install -e ".[docs]"
+mkdocs serve                     # http://127.0.0.1:8000, reloads on each change
+mkdocs build --strict            # what CI runs: fails on a broken link
+```
+
+Every push to `main` publishes the site to https://adeshinan.github.io/fitrank/.
 
 ## Releases
 

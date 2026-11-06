@@ -4,10 +4,12 @@
 [![PyPI](https://img.shields.io/pypi/v/fitrank)](https://pypi.org/project/fitrank/)
 [![Python](https://img.shields.io/pypi/pyversions/fitrank)](https://pypi.org/project/fitrank/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Adeshinan/fitrank/blob/main/LICENSE)
+[![Docs](https://img.shields.io/badge/docs-adeshinan.github.io%2Ffitrank-indigo)](https://adeshinan.github.io/fitrank/)
 
 **Reproducible, config-driven model comparison for scikit-learn. No hidden preprocessing.**
 
-English · [Français](https://github.com/Adeshinan/fitrank/blob/main/README.fr.md)
+English · [Français](https://github.com/Adeshinan/fitrank/blob/main/README.fr.md) ·
+**[Documentation](https://adeshinan.github.io/fitrank/)**
 
 FitRank trains several scikit-learn models on your tabular data, tunes each one,
 and ranks them in a leaderboard. You describe the whole experiment in one YAML
@@ -264,6 +266,12 @@ model by its class path, with its package in `project.allowed_modules`.
 Each model comes with a small default grid; `params` in the YAML replaces it.
 Metrics are the [scikit-learn scorer names](https://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter):
 `f1_weighted` ranks classification by default, the RMSE ranks regression.
+
+## Documentation
+
+The full documentation, in English and French, is at
+**https://adeshinan.github.io/fitrank/**: a quick start, the reference of every
+YAML key, the models, the command line, the Python API and a FAQ.
 
 ## Contributing
 

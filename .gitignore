@@ -27,6 +27,7 @@ coverage.xml
 
 # FitRank run outputs
 runs/
+site/
 
 # Editors and OS
 .vscode/

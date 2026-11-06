@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   regression on text, true/false or two values, or classification on a number
   with many distinct values (more than 20 and more than 5 % of the rows).
   `fitrank validate` and `fitrank run` show it in yellow, then continue.
+- Documentation site in English and French at https://adeshinan.github.io/fitrank/:
+  quick start, configuration reference (every key, type and default), models,
+  command line, Python API (generated from the docstrings) and FAQ. Install the
+  tools with `pip install "fitrank[docs]"`.
 
 ### Fixed
 

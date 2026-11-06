@@ -1,0 +1,95 @@
+site_name: FitRank
+site_url: https://adeshinan.github.io/fitrank/
+site_description: Train, compare and rank scikit-learn models from a single YAML config.
+site_author: Faïd Adéshinan ALAGBE
+repo_url: https://github.com/Adeshinan/fitrank
+repo_name: Adeshinan/fitrank
+edit_uri: edit/main/docs/
+copyright: MIT © 2026 Faïd Adéshinan ALAGBE
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.footer
+    - navigation.top
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+
+# Every page exists twice: page.en.md and page.fr.md.
+plugins:
+  - search
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: fr
+          name: Français
+          build: true
+          site_description: Entraîner, comparer et classer des modèles scikit-learn depuis un seul fichier YAML.
+          nav_translations:
+            Home: Accueil
+            Quick start: Démarrage rapide
+            Configuration reference: Référence de la configuration
+            Models: Modèles
+            Command line: Ligne de commande
+            Python API: API Python
+            FAQ: FAQ
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            members_order: source
+            show_root_heading: true
+            show_root_full_path: false
+            show_source: false
+            show_signature_annotations: true
+            separate_signature: true
+            heading_level: 3
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+
+# With `mkdocs build --strict`, a broken link or anchor fails the build.
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+nav:
+  - Home: index.md
+  - Quick start: quickstart.md
+  - Configuration reference: configuration.md
+  - Models: models.md
+  - Command line: cli.md
+  - Python API: api.md
+  - FAQ: faq.md
