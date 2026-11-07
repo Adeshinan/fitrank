@@ -1,14 +1,17 @@
 """Tests for the fitrank command, run in-process with typer's CliRunner."""
 
+import io
 import json
 import shutil
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from rich.console import Console
+from rich.text import Text
 from typer.testing import CliRunner
 
-from fitrank import Benchmark, __version__
+from fitrank import Benchmark, __version__, cli
 from fitrank.cli import app
 
 REPO = Path(__file__).resolve().parents[1]
@@ -277,6 +280,37 @@ def test_api_and_cli_give_same_leaderboard(workdir: Path) -> None:
         from_api.drop(columns=["fit_s", "error", "notes"]),
         check_dtype=False,
     )
+
+
+def terminal(monkeypatch: pytest.MonkeyPatch) -> io.StringIO:
+    """Make the CLI write to an 80-column terminal, as a notebook cell shows it."""
+    screen = io.StringIO()
+    for name in ("console", "err_console"):
+        console = Console(file=screen, width=80, force_terminal=True, highlight=False)
+        monkeypatch.setattr(cli, name, console)
+    return screen
+
+
+def test_terminal_shows_the_progress_bar(workdir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("JPY_PARENT_PID", raising=False)
+    monkeypatch.delenv("COLAB_RELEASE_TAG", raising=False)
+    screen = terminal(monkeypatch)
+    result = runner.invoke(app, ["run", "iris.yaml"])
+    assert result.exit_code == 0, result.output
+    assert "Evaluating 2 candidates" in screen.getvalue()
+
+
+@pytest.mark.parametrize("variable", ["JPY_PARENT_PID", "COLAB_RELEASE_TAG"])
+def test_notebook_gets_no_progress_bar_and_a_wide_table(
+    workdir: Path, monkeypatch: pytest.MonkeyPatch, variable: str
+) -> None:
+    monkeypatch.setenv(variable, "1")
+    screen = terminal(monkeypatch)
+    result = runner.invoke(app, ["run", "iris.yaml"])
+    assert result.exit_code == 0, result.output
+    text = Text.from_ansi(screen.getvalue()).plain
+    assert "Evaluating" not in text  # each refresh would print a new copy of the bar
+    assert max(len(line) for line in text.splitlines()) > 80  # not cut to the cell width
 
 
 # --- Exit codes and errors -------------------------------------------------------------------

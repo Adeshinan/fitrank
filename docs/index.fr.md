@@ -23,6 +23,10 @@ pip install fitrank
 fitrank run fitrank.yaml
 ```
 
+Ou essayez-le dans votre navigateur, sans rien installer :
+[ouvrez le notebook dans Colab](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/try_fitrank.ipynb) et exécutez toutes les cellules
+(environ 2 minutes).
+
 ## Ce que FitRank garantit
 
 - **Les mêmes conditions pour chaque modèle.** Même découpage

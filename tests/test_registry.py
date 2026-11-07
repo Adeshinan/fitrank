@@ -19,6 +19,13 @@ def clean_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(registry, "MODELS", dict(registry.MODELS))
 
 
+@pytest.mark.parametrize(("name", "task"), [("svm", "classification"), ("svr", "regression")])
+def test_libsvm_models_have_an_iteration_limit(name: str, task: Task) -> None:
+    # Without a limit, a linear kernel with a large C can hang on one CV fold.
+    estimator, _ = get_model(name, task).factory()
+    assert estimator.get_params()["max_iter"] == 1_000_000
+
+
 def test_sixteen_builtin_models() -> None:
     assert list_models("classification") == [
         "decision_tree", "gradient_boosting", "knn", "logistic_regression",

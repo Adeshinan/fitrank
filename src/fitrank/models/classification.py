@@ -25,7 +25,10 @@ def logistic_regression() -> tuple[LogisticRegression, Grid]:
 
 @register_model("svm", task=TASK)
 def svm() -> tuple[SVC, Grid]:
-    return SVC(), {
+    # libsvm has no iteration limit by default: a linear kernel with a large C can
+    # run for minutes on one CV fold without converging (Titanic: > 10 min). A
+    # converging fit needs far fewer iterations; with the limit, that fold takes 1 s.
+    return SVC(max_iter=1_000_000), {
         "C": [0.1, 1, 10],
         "kernel": ["linear", "rbf"],
         "class_weight": _BALANCE,

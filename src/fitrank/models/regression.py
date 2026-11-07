@@ -42,7 +42,8 @@ def polynomial_regression() -> tuple[Pipeline, Grid]:
 
 @register_model("svr", task=TASK)
 def svr() -> tuple[SVR, Grid]:
-    return SVR(), {"C": [0.1, 1, 10], "kernel": ["linear", "rbf"]}
+    # Same iteration limit as svm: libsvm can otherwise run for minutes on one fold.
+    return SVR(max_iter=1_000_000), {"C": [0.1, 1, 10], "kernel": ["linear", "rbf"]}
 
 
 @register_model("knn", task=TASK)
