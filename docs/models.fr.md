@@ -92,7 +92,7 @@ def extra_trees():
 
 
 results = Benchmark(
-    data="iris.csv", target="target", task="classification", models=["extra_trees", "svm"]
+    data="iris.csv", target="species", task="classification", models=["extra_trees", "svm"]
 ).run()
 ```
 

@@ -81,7 +81,7 @@ fitrank list reductions
 | Option | Description |
 |---|---|
 | `--quiet`, `-q` | Seulement le classement, pour les scripts. |
-| `--verbose`, `-v` | Une ligne par candidat dès qu'il est fini, et la trace d'appels en cas d'erreur. |
+| `--verbose`, `-v` | Une ligne par candidat dès qu'il est fini, et la pile d'appels (traceback) en cas d'erreur. |
 | `--version` | Affiche la version de FitRank. |
 
 ## Codes de sortie
@@ -93,6 +93,6 @@ fitrank list reductions
 | `2` | Erreur de données : fichier introuvable, colonne absente, valeurs manquantes sans imputer... |
 | `3` | Tous les candidats ont échoué. |
 
-Les erreurs s'affichent en rouge, sans trace d'appels : ce qui ne va pas, où,
-et comment corriger. Les avertissements s'affichent en jaune et n'arrêtent
-jamais la commande.
+Les erreurs s'affichent en rouge, sans la pile d'appels (traceback) : ce qui
+ne va pas, où, et comment corriger. Les avertissements s'affichent en jaune et
+n'arrêtent jamais la commande.

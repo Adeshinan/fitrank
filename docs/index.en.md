@@ -10,7 +10,7 @@ ranking.
 ```yaml
 data:
   path: iris.csv
-  target: target          # the column to predict
+  target: species         # the column to predict
 task: classification
 models:
   - name: logistic_regression

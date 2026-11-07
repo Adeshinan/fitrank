@@ -5,14 +5,14 @@ fichier ou d'un DataFrame pandas. Les arguments nommés de `Benchmark` sont les
 sections du YAML, et les deux façons donnent les mêmes résultats.
 
 ```python
-from sklearn.datasets import load_iris
+import pandas as pd
 
 from fitrank import Benchmark
 
-df = load_iris(as_frame=True).frame
+df = pd.read_csv("iris.csv")  # le fichier du démarrage rapide
 results = Benchmark(
     data=df,
-    target="target",
+    target="species",
     task="classification",
     models=["logistic_regression", "svm", {"name": "knn", "params": {"n_neighbors": [3, 5]}}],
     evaluation={"cv": 5, "primary_metric": "f1_macro"},
@@ -20,7 +20,7 @@ results = Benchmark(
 
 print(results.leaderboard()[["rank", "model", "cv_f1_macro", "test_f1_macro"]])
 model = results.best_model()  # un Pipeline scikit-learn entraîné
-print(model.predict(df.drop(columns="target").head()))
+print(model.predict(df.drop(columns="species").head()))
 ```
 
 Un fichier YAML se lance de la même façon :
