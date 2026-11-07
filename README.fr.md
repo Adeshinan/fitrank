@@ -5,6 +5,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/fitrank)](https://pypi.org/project/fitrank/)
 [![Licence : MIT](https://img.shields.io/badge/licence-MIT-blue)](https://github.com/Adeshinan/fitrank/blob/main/LICENSE)
 [![Docs](https://img.shields.io/badge/docs-adeshinan.github.io%2Ffitrank-indigo)](https://adeshinan.github.io/fitrank/fr/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/try_fitrank.ipynb)
 
 **Comparer des modèles scikit-learn de façon reproductible, à partir d'un fichier de configuration. Aucun prétraitement caché.**
 

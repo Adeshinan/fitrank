@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `examples/try_fitrank.ipynb`, a notebook to try FitRank in Colab without
+  installing anything: Iris, Titanic with and without preprocessing, the YAML
+  and the command line, predictions, and a model of your own. Linked from both
+  READMEs ("Open in Colab") and the documentation home page.
+
+### Fixed
+
+- `svm` and `svr` could run for more than 10 minutes on one cross-validation
+  fold (a linear kernel with `C=10` that does not converge, on the Titanic
+  data). They now stop after 1,000,000 iterations: the whole `svm` grid takes
+  about 3 s on that data.
+- `fitrank run` in a notebook cell (`!fitrank run`, Jupyter or Colab) printed
+  the progress bar dozens of times and cut the leaderboard at 80 columns. The
+  progress bar is now shown in a real terminal only, and the leaderboard gets
+  its full width in a notebook, a file or a CI log.
+
 ### Changed
 
 - The quick start creates `iris.csv` with a `species` column, so the examples

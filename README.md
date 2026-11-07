@@ -5,6 +5,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/fitrank)](https://pypi.org/project/fitrank/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/Adeshinan/fitrank/blob/main/LICENSE)
 [![Docs](https://img.shields.io/badge/docs-adeshinan.github.io%2Ffitrank-indigo)](https://adeshinan.github.io/fitrank/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/try_fitrank.ipynb)
 
 **Reproducible, config-driven model comparison for scikit-learn. No hidden preprocessing.**
 

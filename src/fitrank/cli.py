@@ -7,6 +7,7 @@ stderr.
 
 """
 
+import os
 import warnings
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -91,7 +92,7 @@ def run(
     with _user_errors(options), _fitrank_warnings():
         results = _run(Benchmark.from_yaml(config), options)
 
-    if not console.is_terminal:  # a file or a pipe: no terminal width to fit in
+    if not console.is_terminal or _in_notebook():  # no real terminal width to fit in
         console.width = max(console.width, 160)
     console.print(_leaderboard_table(results))
     best = results.best
@@ -260,11 +261,26 @@ def _fitrank_warnings() -> Iterator[None]:
         yield
 
 
+def _in_notebook() -> bool:
+    """True when run from a notebook cell (`!fitrank run`): Jupyter and Colab.
+
+    The cell shows a pseudo-terminal that cannot redraw a progress bar, so each
+    refresh would print a new copy of it, and its width is a fixed 80 columns.
+    """
+    return "JPY_PARENT_PID" in os.environ or "COLAB_RELEASE_TAG" in os.environ
+
+
 def _run(bench: Benchmark, options: Options) -> Results:
     total = bench.n_candidates
     columns = (TextColumn("{task.description}"), BarColumn(), MofNCompleteColumn())
+    # Only a real terminal can redraw the bar in place: not a file, a CI log or a notebook.
+    animated = err_console.is_interactive and not _in_notebook()
     with Progress(
-        *columns, TimeElapsedColumn(), console=err_console, transient=True, disable=options.quiet
+        *columns,
+        TimeElapsedColumn(),
+        console=err_console,
+        transient=True,
+        disable=options.quiet or not animated,
     ) as progress:
         task = progress.add_task(f"Evaluating {total} candidates", total=total)
 
