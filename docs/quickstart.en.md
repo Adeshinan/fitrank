@@ -6,7 +6,7 @@ Any CSV, Excel (`.xlsx`) or Parquet file with one row per example works. Here,
 the iris flowers that ship with scikit-learn:
 
 ```bash
-python -c "from sklearn.datasets import load_iris; load_iris(as_frame=True).frame.to_csv('iris.csv', index=False)"
+python -c "from sklearn.datasets import load_iris; d = load_iris(as_frame=True); d.frame.assign(species=d.target_names[d.target]).drop(columns='target').to_csv('iris.csv', index=False)"
 ```
 
 ## 2. Describe the experiment
@@ -16,7 +16,7 @@ Save this as `fitrank.yaml`:
 ```yaml
 data:
   path: iris.csv
-  target: target          # the column to predict
+  target: species         # the column to predict
 task: classification      # predict a category (regression: predict a number)
 models:
   - name: logistic_regression
@@ -27,7 +27,7 @@ models:
 Or let FitRank write a commented file from your data:
 
 ```bash
-fitrank init --data iris.csv --target target
+fitrank init --data iris.csv --target species
 ```
 
 It writes `config.yaml` with your columns, four fast models and every option

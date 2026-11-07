@@ -12,7 +12,7 @@
 **[Documentation](https://adeshinan.github.io/fitrank/fr/)**
 
 FitRank entraîne plusieurs modèles scikit-learn sur vos données tabulaires,
-règle les hyperparamètres de chacun et les classe dans un tableau. Toute
+optimise les hyperparamètres de chacun et les classe dans un tableau. Toute
 l'expérience tient dans un seul fichier YAML : relancez-le le mois prochain ou
 envoyez-le à un collègue, vous obtiendrez le même classement.
 
@@ -53,7 +53,7 @@ des fichiers Parquet : `pip install "fitrank[parquet]"`.
 Enregistrez des données (ici les iris fournis avec scikit-learn) :
 
 ```bash
-python -c "from sklearn.datasets import load_iris; load_iris(as_frame=True).frame.to_csv('iris.csv', index=False)"
+python -c "from sklearn.datasets import load_iris; d = load_iris(as_frame=True); d.frame.assign(species=d.target_names[d.target]).drop(columns='target').to_csv('iris.csv', index=False)"
 ```
 
 Décrivez l'expérience dans `fitrank.yaml` :
@@ -61,7 +61,7 @@ Décrivez l'expérience dans `fitrank.yaml` :
 ```yaml
 data:
   path: iris.csv
-  target: target          # la colonne à prédire
+  target: species         # la colonne à prédire
 task: classification
 models:
   - name: logistic_regression
@@ -75,7 +75,7 @@ Lancez-la :
 fitrank run fitrank.yaml
 ```
 
-Pour partir plutôt d'un fichier commenté, `fitrank init --data iris.csv --target target`
+Pour partir plutôt d'un fichier commenté, `fitrank init --data iris.csv --target species`
 écrit un `config.yaml` avec vos colonnes, quatre modèles et chaque option expliquée.
 
 Chaque modèle est réglé sur les mêmes plis de validation croisée, classé, puis
@@ -191,14 +191,14 @@ données, `3` tous les modèles ont échoué.
 La même expérience, à partir d'un DataFrame :
 
 ```python
-from sklearn.datasets import load_iris
+import pandas as pd
 
 from fitrank import Benchmark
 
-df = load_iris(as_frame=True).frame
+df = pd.read_csv("iris.csv")  # le fichier du démarrage rapide
 results = Benchmark(
     data=df,
-    target="target",
+    target="species",
     task="classification",
     models=["logistic_regression", "svm", {"name": "knn", "params": {"n_neighbors": [3, 5]}}],
     evaluation={"cv": 5, "primary_metric": "f1_macro"},
@@ -206,7 +206,7 @@ results = Benchmark(
 
 print(results.leaderboard()[["rank", "model", "cv_f1_macro", "test_f1_macro"]])
 model = results.best_model()  # un Pipeline scikit-learn déjà entraîné
-print(model.predict(df.drop(columns="target").head()))
+print(model.predict(df.drop(columns="species").head()))
 ```
 
 `Benchmark.from_yaml("fitrank.yaml").run()` lance un fichier YAML. Les
@@ -252,7 +252,7 @@ def extra_trees():
 
 
 results = Benchmark(
-    data="iris.csv", target="target", task="classification", models=["extra_trees", "svm"]
+    data="iris.csv", target="species", task="classification", models=["extra_trees", "svm"]
 ).run()
 ```
 
@@ -286,7 +286,7 @@ de chaque clé YAML, les modèles, la ligne de commande, l'API Python et une FAQ
 ## Contribuer
 
 Les signalements de bugs et les idées sont les bienvenus dans les
-[issues](https://github.com/Adeshinan/fitrank/issues). Pour travailler sur le code :
+[tickets](https://github.com/Adeshinan/fitrank/issues). Pour travailler sur le code :
 
 ```bash
 git clone https://github.com/Adeshinan/fitrank.git

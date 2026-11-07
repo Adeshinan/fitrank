@@ -50,7 +50,7 @@ files `pip install "fitrank[parquet]"`.
 Save some data (here the iris flowers that ship with scikit-learn):
 
 ```bash
-python -c "from sklearn.datasets import load_iris; load_iris(as_frame=True).frame.to_csv('iris.csv', index=False)"
+python -c "from sklearn.datasets import load_iris; d = load_iris(as_frame=True); d.frame.assign(species=d.target_names[d.target]).drop(columns='target').to_csv('iris.csv', index=False)"
 ```
 
 Describe the experiment in `fitrank.yaml`:
@@ -58,7 +58,7 @@ Describe the experiment in `fitrank.yaml`:
 ```yaml
 data:
   path: iris.csv
-  target: target          # the column to predict
+  target: species         # the column to predict
 task: classification
 models:
   - name: logistic_regression
@@ -72,7 +72,7 @@ Run it:
 fitrank run fitrank.yaml
 ```
 
-To start from a commented file instead, `fitrank init --data iris.csv --target target`
+To start from a commented file instead, `fitrank init --data iris.csv --target species`
 writes a `config.yaml` with your columns, four models and every option explained.
 
 Each model is tuned on the same cross-validation folds, ranked, then scored on
@@ -184,14 +184,14 @@ Exit codes: `0` success, `1` configuration error, `2` data error, `3` every mode
 The same experiment, from a DataFrame:
 
 ```python
-from sklearn.datasets import load_iris
+import pandas as pd
 
 from fitrank import Benchmark
 
-df = load_iris(as_frame=True).frame
+df = pd.read_csv("iris.csv")  # the file from the quick start
 results = Benchmark(
     data=df,
-    target="target",
+    target="species",
     task="classification",
     models=["logistic_regression", "svm", {"name": "knn", "params": {"n_neighbors": [3, 5]}}],
     evaluation={"cv": 5, "primary_metric": "f1_macro"},
@@ -199,7 +199,7 @@ results = Benchmark(
 
 print(results.leaderboard()[["rank", "model", "cv_f1_macro", "test_f1_macro"]])
 model = results.best_model()  # a fitted scikit-learn Pipeline
-print(model.predict(df.drop(columns="target").head()))
+print(model.predict(df.drop(columns="species").head()))
 ```
 
 `Benchmark.from_yaml("fitrank.yaml").run()` runs a YAML file. The keyword
@@ -243,7 +243,7 @@ def extra_trees():
 
 
 results = Benchmark(
-    data="iris.csv", target="target", task="classification", models=["extra_trees", "svm"]
+    data="iris.csv", target="species", task="classification", models=["extra_trees", "svm"]
 ).run()
 ```
 

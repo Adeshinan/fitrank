@@ -3,14 +3,14 @@
 **Comparaison de modèles scikit-learn reproductible, pilotée par la configuration. Aucun prétraitement caché.**
 
 FitRank entraîne plusieurs modèles scikit-learn sur vos données tabulaires,
-règle chacun d'eux et les classe dans un tableau. Toute l'expérience tient dans
-un fichier YAML : relancez-la le mois prochain, ou envoyez-la à un collègue,
+optimise les hyperparamètres de chacun et les classe dans un tableau. Toute
+l'expérience tient dans un fichier YAML : relancez-la le mois prochain, ou envoyez-la à un collègue,
 vous obtenez le même classement.
 
 ```yaml
 data:
   path: iris.csv
-  target: target          # la colonne à prédire
+  target: species         # la colonne à prédire
 task: classification
 models:
   - name: logistic_regression
@@ -29,7 +29,8 @@ fitrank run fitrank.yaml
   entraînement/test, mêmes plis de validation croisée, même métrique. Les
   modèles sont classés sur le score de validation croisée ; le score de test
   est affiché, jamais utilisé pour choisir.
-- **Rien n'arrive à vos données sans être déclaré.** Les valeurs manquantes et
+- **Aucune transformation n'est appliquée à vos données sans que vous l'ayez
+  déclarée.** Les valeurs manquantes et
   les colonnes texte sont signalées avec le YAML qui les corrige ; FitRank ne
   remplit, ne supprime et n'encode jamais rien de lui-même.
 - **Aucune fuite de données.** Le prétraitement vit dans le pipeline : il est
@@ -37,7 +38,7 @@ fitrank run fitrank.yaml
 - **Un modèle qui échoue n'arrête jamais l'exécution.** Il est marqué `failed`
   dans le classement, avec son erreur.
 - **Des erreurs claires.** Chaque message dit ce qui ne va pas, où (clé YAML ou
-  colonne) et comment corriger, sans trace d'appels.
+  colonne) et comment corriger, sans afficher la pile d'appels (traceback).
 
 ## Pourquoi FitRank ?
 
@@ -71,5 +72,5 @@ les fichiers Parquet `pip install "fitrank[parquet]"`.
 - Guides : [Classification ou régression ?](guides/task.md) et [Choisir une métrique](guides/metrics.md).
 - [FAQ](faq.md).
 
-FitRank est open source (MIT). Le code, les issues et le journal des
+FitRank est open source (MIT). Le code, les tickets et le journal des
 modifications sont sur [GitHub](https://github.com/Adeshinan/fitrank).

@@ -6,7 +6,7 @@ N'importe quel fichier CSV, Excel (`.xlsx`) ou Parquet avec une ligne par
 exemple convient. Ici, les fleurs d'iris fournies avec scikit-learn :
 
 ```bash
-python -c "from sklearn.datasets import load_iris; load_iris(as_frame=True).frame.to_csv('iris.csv', index=False)"
+python -c "from sklearn.datasets import load_iris; d = load_iris(as_frame=True); d.frame.assign(species=d.target_names[d.target]).drop(columns='target').to_csv('iris.csv', index=False)"
 ```
 
 ## 2. Décrire l'expérience
@@ -16,7 +16,7 @@ Enregistrez ceci dans `fitrank.yaml` :
 ```yaml
 data:
   path: iris.csv
-  target: target          # la colonne à prédire
+  target: species         # la colonne à prédire
 task: classification      # prédire une catégorie (regression : prédire un nombre)
 models:
   - name: logistic_regression
@@ -27,7 +27,7 @@ models:
 Ou laissez FitRank écrire un fichier commenté à partir de vos données :
 
 ```bash
-fitrank init --data iris.csv --target target
+fitrank init --data iris.csv --target species
 ```
 
 Il écrit `config.yaml` avec vos colonnes, quatre modèles rapides et chaque

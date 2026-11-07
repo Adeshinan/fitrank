@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The quick start creates `iris.csv` with a `species` column, so the examples
+  read `target: species` instead of the ambiguous `target: target`. Clearer
+  French wording on the documentation site.
+
 ## [1.1.0] - 2026-11-06
 
 Easier to start, safer to extend, and documented: `fitrank init`, models by

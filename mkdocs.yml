@@ -76,6 +76,7 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+      permalink_title: ""  # shared by both languages: no English tooltip on the French site
   - pymdownx.details
   - pymdownx.highlight
   - pymdownx.inlinehilite
