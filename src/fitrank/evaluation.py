@@ -2,16 +2,20 @@
 
 The test set is put aside first and only used for the final score. The same
 CV folds and the same metrics are used for every candidate, and a candidate
-that fails is reported as ``failed`` without stopping the others.
+that fails is reported as ``failed`` without stopping the others. A model that
+stops at its iteration limit gets a note instead of a raw ConvergenceWarning.
 """
 
 import time
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
+from sklearn.base import BaseEstimator
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import get_scorer
 from sklearn.model_selection import (
     GridSearchCV,
@@ -32,6 +36,9 @@ DEFAULT_PRIMARY: dict[Task, str] = {
     "classification": "f1_weighted",
     "regression": "neg_root_mean_squared_error",
 }
+# Extra "score" computed on every CV fit: 1 when the model stopped at max_iter.
+_STOPPED = "fitrank_stopped_at_max_iter"
+
 DEFAULT_SECONDARY: dict[Task, list[str]] = {
     "classification": ["accuracy", "precision_weighted", "recall_weighted"],
     "regression": ["r2", "neg_mean_absolute_error"],
@@ -177,8 +184,13 @@ def _evaluate_one(
                 f" which {candidate.model_name} does not provide"
             )
         search = _make_search(candidate, folds, [primary, *secondary], config)
-        search.fit(X_train, y_train)
+        with warnings.catch_warnings():
+            # The filter reaches the joblib workers too (n_jobs): the count below
+            # replaces the warnings, whatever the number of cores.
+            warnings.filterwarnings("ignore", category=ConvergenceWarning)
+            search.fit(X_train, y_train)
         best = search.best_estimator_
+        notes += _convergence_notes(search)
         sign = 1 if higher_is_better(primary) else -1
         index = search.best_index_
         result = CandidateResult(
@@ -218,7 +230,7 @@ def _make_search(
     candidate: Candidate, folds: KFold | StratifiedKFold, metrics: list[str], config: FitRankConfig
 ) -> GridSearchCV | RandomizedSearchCV:
     common: dict[str, Any] = {
-        "scoring": {metric: metric for metric in metrics},
+        "scoring": {metric: metric for metric in metrics} | {_STOPPED: _stopped_scorer},
         "refit": metrics[0],
         "cv": folds,
         "error_score": np.nan,  # a failing combination is skipped, the others still count
@@ -234,6 +246,38 @@ def _make_search(
         random_state=config.project.random_state,
         **common,
     )
+
+
+def _stopped_at_max_iter(estimator: Any) -> bool:
+    """True when a fitted model stopped at its iteration limit instead of converging.
+
+    scikit-learn warns (ConvergenceWarning) exactly when ``n_iter_`` reaches
+    ``max_iter``. A pipeline is checked through its last step.
+    """
+    while isinstance(estimator, Pipeline):
+        estimator = estimator.steps[-1][1]
+    if not isinstance(estimator, BaseEstimator):
+        return False
+    max_iter = estimator.get_params().get("max_iter")
+    n_iter = getattr(estimator, "n_iter_", None)
+    if not isinstance(max_iter, int) or max_iter <= 0 or n_iter is None:
+        return False
+    return bool(np.max(n_iter) >= max_iter)
+
+
+def _stopped_scorer(estimator: Any, X: Any, y: Any) -> float:
+    return float(_stopped_at_max_iter(estimator))
+
+
+def _convergence_notes(search: GridSearchCV | RandomizedSearchCV) -> list[str]:
+    """One note counting the fits (CV folds and final refit) stopped at max_iter."""
+    results = search.cv_results_
+    folds = [results[f"split{k}_test_{_STOPPED}"] for k in range(search.n_splits_)]
+    stopped = int(np.nansum(folds)) + _stopped_at_max_iter(search.best_estimator_)
+    total = len(results["params"]) * search.n_splits_ + 1
+    if not stopped:
+        return []
+    return [f"{stopped} of {total} fits stopped at max_iter before converging (ConvergenceWarning)"]
 
 
 def _score(estimator: Pipeline, metric: str, X: pd.DataFrame, y: pd.Series) -> float:
