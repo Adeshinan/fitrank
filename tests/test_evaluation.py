@@ -1,6 +1,7 @@
 """Tests for the evaluation: split, shared CV folds, search, metrics and failures."""
 
 import math
+import warnings
 from typing import Any
 
 import numpy as np
@@ -8,12 +9,17 @@ import pandas as pd
 import pytest
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.datasets import load_diabetes, load_iris
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold, StratifiedKFold
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from fitrank import registry
 from fitrank.config import FitRankConfig
 from fitrank.evaluation import (
     CandidateResult,
+    _stopped_at_max_iter,
     display_name,
     evaluate,
     higher_is_better,
@@ -128,6 +134,53 @@ def test_parallel_search_gives_the_same_results() -> None:
     assert [(r.cv_mean, r.cv_std, r.test_score, r.best_params) for r in sequential] == [
         (r.cv_mean, r.cv_std, r.test_score, r.best_params) for r in parallel
     ]
+
+
+def stopping_config(n_jobs: int) -> FitRankConfig:
+    """One logistic regression that cannot converge in 2 iterations: every fit stops."""
+    config = FitRankConfig.model_validate({
+        "data": {"path": "iris.csv", "target": "species"},
+        "task": "classification",
+        "models": [
+            {"class": "sklearn.linear_model.LogisticRegression", "params": {"max_iter": [2]}},
+            {"name": "knn", "params": {"n_neighbors": [5]}},
+        ],
+        "evaluation": {"cv": 3},
+    })  # fmt: skip
+    config.project.n_jobs = n_jobs
+    return config
+
+
+@pytest.mark.parametrize("n_jobs", [1, 2])
+def test_convergence_warnings_become_a_note(n_jobs: int, capfd: pytest.CaptureFixture[str]) -> None:
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        stopped, converged = run(stopping_config(n_jobs), IRIS)
+    # 3 CV folds + the final refit, counted the same way whatever n_jobs
+    assert stopped.notes == [
+        "4 of 4 fits stopped at max_iter before converging (ConvergenceWarning)"
+    ]
+    assert converged.notes == []
+    assert not [w for w in caught if issubclass(w.category, ConvergenceWarning)]
+    assert "ConvergenceWarning" not in capfd.readouterr().err  # nor printed by a worker
+
+
+def test_other_warnings_still_show() -> None:
+    with pytest.warns(UserWarning, match="k=10 is greater than n_features=4"):
+        config = iris_config()
+        config.reduction = [{"select_k_best": {"k": [10]}}]
+        run(config, IRIS)
+
+
+def test_stopped_at_max_iter_looks_inside_pipelines() -> None:
+    X, y = IRIS.drop(columns="species"), IRIS["species"]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        stopped = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2)).fit(X, y)
+    converged = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000)).fit(X, y)
+    assert _stopped_at_max_iter(make_pipeline(stopped))
+    assert not _stopped_at_max_iter(converged)
+    assert not _stopped_at_max_iter(make_pipeline(StandardScaler()).fit(X))  # no max_iter
 
 
 def test_random_search_samples_the_grid() -> None:

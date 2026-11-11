@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-11
+
+### Fixed
+
+- A model that stops at its iteration limit (`max_iter`) no longer prints a raw
+  scikit-learn `ConvergenceWarning`, with its misleading advice to scale the
+  data. The leaderboard's `notes` column counts those fits instead, e.g.
+  "1 of 61 fits stopped at max_iter before converging (ConvergenceWarning)",
+  and `--verbose` shows it. The count is the same with `n_jobs: 1` and
+  `n_jobs: -1`; other warnings are shown as before.
+
 ## [1.1.1] - 2026-11-07
 
 FitRank in notebooks: a Colab notebook to try it, no more `svm` folds that
@@ -127,7 +138,8 @@ data from a single YAML file.
 
 - Package skeleton published to reserve the `fitrank` name on PyPI.
 
-[Unreleased]: https://github.com/Adeshinan/fitrank/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/Adeshinan/fitrank/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/Adeshinan/fitrank/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/Adeshinan/fitrank/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Adeshinan/fitrank/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Adeshinan/fitrank/compare/v0.1.0...v1.0.0
