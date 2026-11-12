@@ -160,6 +160,7 @@ est refusé, avec le nom valide le plus proche.
 | Clé | Type | Défaut | Description |
 |---|---|---|---|
 | `test_size` | nombre entre 0 et 1 | `0.2` | Part des lignes mises de côté pour le score de test final. |
+| `test_data` | chemin de fichier | aucun | Votre propre jeu de test (CSV, Excel ou Parquet), à la place de `test_size` : voir plus bas. |
 | `cv` | nombre entier ≥ 2 | `5` | Nombre de plis de validation croisée sur les autres lignes. |
 | `search` | `grid` ou `random` | `grid` | `grid` essaie chaque combinaison de `params` ; `random` en essaie `n_iter`. |
 | `n_iter` | nombre entier ≥ 1 | `20` | Avec `search: random`, combinaisons essayées par candidat (au plus la taille de la grille). |
@@ -179,6 +180,38 @@ Sans `metrics`, la classification affiche `accuracy`, `precision_weighted` et
   modèle, avec une note.
 
 Vous hésitez sur la métrique ? Voir [Choisir une métrique](guides/metrics.md).
+
+### Votre propre jeu de test
+
+Par défaut, FitRank met de côté `test_size` des lignes. Pour évaluer tous les
+modèles sur votre propre jeu de test (le jeu de test officiel d'une
+compétition, les derniers mois d'une série temporelle, un jeu de test propre
+pendant que les données d'entraînement changent), donnez-le dans `test_data` :
+
+```yaml
+data:
+  path: data/train.csv
+  target: label
+evaluation:
+  test_data: data/test.csv
+  cv: 5
+```
+
+- Rien n'est découpé : toutes les lignes de `data.path` servent à la recherche
+  et à la validation croisée, et chaque modèle est évalué sur tout le jeu de test.
+- Le jeu de test reçoit les mêmes colonnes que l'entraînement (`features` /
+  `exclude`) ; ses colonnes en plus sont ignorées.
+- `test_size` ne peut pas être écrit avec `test_data` : choisissez l'un des deux.
+- Avant l'entraînement, FitRank s'arrête avec une erreur claire si le jeu de
+  test n'a pas la cible ou une colonne utilisée, a des valeurs manquantes sans
+  imputer, ou (classification) contient une classe absente de l'entraînement.
+  Une classe de l'entraînement sans aucune ligne de test donne seulement un
+  avertissement : `roc_auc` et les moyennes macro peuvent alors tromper.
+- `metadata.json` enregistre l'origine du jeu de test et son empreinte
+  SHA-256 : deux exécutions avec la même empreinte ont été évaluées sur
+  exactement les mêmes lignes.
+
+En Python, passez un DataFrame ou un chemin : `Benchmark(data=train, test_data=test, ...)`.
 
 ## output
 

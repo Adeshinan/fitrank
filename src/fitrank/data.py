@@ -5,6 +5,7 @@ imputer and text columns need an encoder, both declared in the configuration.
 """
 
 import difflib
+import hashlib
 import warnings
 import zipfile
 from collections.abc import Callable, Hashable, Sequence
@@ -30,8 +31,10 @@ _CONTINUOUS_MIN_VALUES = 20
 _CONTINUOUS_MIN_SHARE = 0.05
 
 
-def load_dataframe(source: str | Path | pd.DataFrame) -> pd.DataFrame:
+def load_dataframe(source: str | Path | pd.DataFrame, key: str = "data.path") -> pd.DataFrame:
     """Read a CSV, Excel (.xlsx) or Parquet file, or return a DataFrame as is.
+
+    ``key`` is the YAML key that gave the path, named in error messages.
 
     Raises:
         DataError: the file is missing, has an unsupported extension, needs
@@ -50,7 +53,7 @@ def load_dataframe(source: str | Path | pd.DataFrame) -> pd.DataFrame:
     if not path.is_file():
         raise DataError(
             f"data file not found: {path}",
-            ["check data.path; a relative path starts from the folder the command runs in"],
+            [f"check {key}; a relative path starts from the folder the command runs in"],
         )
 
     reader, extra = _READERS[suffix]
@@ -106,14 +109,98 @@ def split_features_target(
     return df[features], df[target]
 
 
-def check_data(X: pd.DataFrame, y: pd.Series, config: FitRankConfig) -> None:
+def split_test_data(
+    df: pd.DataFrame, X_train: pd.DataFrame, y_train: pd.Series, where: str
+) -> tuple[pd.DataFrame, pd.Series]:
+    """Return ``X_test`` and ``y_test``: the training columns, read from the test set.
+
+    ``where`` names the test set in error messages (its path, or "the test
+    DataFrame"). Extra columns in the test set are ignored.
+
+    Raises:
+        DataError: the test set has no row, or lacks the target or a feature.
+    """
+    target = y_train.name
+    if target not in df.columns:
+        raise DataError(
+            f"test_data has no target column {target!r}",
+            [f"column {target!r} (data.target) not found in {where}"],
+            hint="the test set needs the true answers to be scored",
+        )
+    missing = [column for column in X_train.columns if column not in df.columns]
+    if missing:
+        n = len(missing)
+        details = [f"column {column!r} not found in {where}" for column in missing]
+        names = [str(column) for column in df.columns]
+        for column in missing:
+            close = difflib.get_close_matches(str(column), names, n=1)
+            if close:
+                details.append(f"did you mean {close[0]!r} instead of {column!r}?")
+        raise DataError(
+            f"test_data is missing {n} column{'s' if n > 1 else ''} used for training", details
+        )
+    if len(df) == 0:
+        raise DataError("test_data has no rows", [f"check that {where} is the right file"])
+    return df[list(X_train.columns)], df[target]
+
+
+def fingerprint(X: pd.DataFrame, y: pd.Series) -> str:
+    """SHA-256 of the rows and columns used: the same test set gives the same value.
+
+    Computed on the values, row by row in order, whatever the file format or
+    the index; another row, value, order or dtype gives another fingerprint.
+    """
+    rows = pd.util.hash_pandas_object(pd.concat([X, y], axis=1), index=False)
+    return hashlib.sha256(rows.to_numpy().tobytes()).hexdigest()
+
+
+def check_test_classes(y_train: pd.Series, y_test: pd.Series, where: str) -> None:
+    """Compare the classes of the training data and of the test set.
+
+    Raises:
+        DataError: a test class never appears in the training data: no model
+            can predict it.
+
+    Warns (``FitRankWarning``) when a training class has no test row: the test
+    scores are still computed, but roc_auc and macro averages can mislead.
+    """
+    train_counts = y_train.value_counts()
+    test_counts = y_test.value_counts()
+    unseen = [label for label in test_counts.index if label not in train_counts.index]
+    if unseen:
+        n = len(unseen)
+        raise DataError(
+            f"test_data has {n} class{'es' if n > 1 else ''} not seen in training",
+            [
+                f"class {label!r} ({test_counts[label]} test rows) is not in data.path"
+                for label in unseen
+            ],
+            hint="no model can predict a class it never saw: add rows of it to the"
+            " training data, or remove them from the test set",
+        )
+    absent = [label for label in train_counts.index if label not in test_counts.index]
+    if absent:
+        listed = ", ".join(repr(label) for label in absent)
+        warnings.warn(
+            f"{where} has no row of class {listed}, which the training data has;"
+            " roc_auc and macro averages on the test set can be misleading",
+            FitRankWarning,
+            stacklevel=3,
+        )
+
+
+def check_data(
+    X: pd.DataFrame, y: pd.Series, config: FitRankConfig, name: str = "the data"
+) -> None:
     """Check that the data can be trained on with the declared preprocessing.
+
+    ``name`` says which data the errors are about, e.g. "test_data".
 
     Raises:
         DataError: one line per problem, with a YAML hint to fix them.
     """
     if len(X) == 0:
-        raise DataError("the data has no rows", ["check data.path points to the right file"])
+        raise DataError(f"{name} has no rows", ["check data.path points to the right file"])
 
     with_imputer = _columns_with_step(config, "imputer")
     with_encoder = _columns_with_step(config, "encoder")
@@ -153,8 +240,9 @@ def check_data(X: pd.DataFrame, y: pd.Series, config: FitRankConfig) -> None:
 
     if problems:
         count = f"{len(problems)} problem{'s' if len(problems) > 1 else ''}"
+        where = "" if name == "the data" else f" in {name}"
         raise DataError(
-            f"{count} found before training",
+            f"{count} found{where} before training",
             problems,
             hint=_preprocessing_hint(X, need_imputer, need_encoder),
         )

@@ -120,6 +120,11 @@ def validate(
     X = plan.X
     console.print(f"Config OK: {config.as_posix()}")
     console.print(f"Data OK: {len(X)} rows, {X.shape[1]} features, target {cfg.data.target!r}")
+    if plan.test_source is not None:
+        console.print(
+            f"Test data OK: {len(plan.X_test)} rows from {plan.test_source}"
+            f" (all {len(X)} rows of data.path train)"
+        )
     console.print(
         f"{len(plan.candidates)} candidates: {len(cfg.reduction)} reduction(s)"
         f" x {len(cfg.models)} model(s), {cfg.evaluation.cv}-fold cross-validation"

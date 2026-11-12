@@ -236,7 +236,7 @@ def test_unknown_nested_key_lists_section_keys(tmp_path: Path) -> None:
 
     assert error.details == [
         "evaluation.folds: unknown key "
-        "(allowed: test_size, cv, search, n_iter, primary_metric, metrics)"
+        "(allowed: test_size, test_data, cv, search, n_iter, primary_metric, metrics)"
     ]
 
 

@@ -183,6 +183,7 @@ class ModelConfig(_Section):
 
 class EvaluationConfig(_Section):
     test_size: float = 0.2
+    test_data: Path | None = None  # your own test set: no split, all of data.path trains
     cv: int = Field(default=5, ge=2)
     search: Literal["grid", "random"] = "grid"
     n_iter: int = Field(default=20, ge=1)
@@ -195,6 +196,15 @@ class EvaluationConfig(_Section):
         if not 0 < value < 1:
             raise ValueError("must be between 0 and 1")
         return value
+
+    @model_validator(mode="after")
+    def _check_test_choice(self) -> "EvaluationConfig":
+        if self.test_data is not None and "test_size" in self.model_fields_set:
+            raise ValueError(
+                "choose test_size or test_data, not both: test_size splits data.path,"
+                " test_data is a separate test set; remove one of the two"
+            )
+        return self
 
 
 class OutputConfig(_Section):

@@ -155,6 +155,7 @@ with the closest valid name.
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `test_size` | number between 0 and 1 | `0.2` | Share of the rows kept aside for the final test score. |
+| `test_data` | file path | none | Your own test set (CSV, Excel or Parquet), instead of `test_size`: see below. |
 | `cv` | whole number ≥ 2 | `5` | Number of cross-validation folds on the other rows. |
 | `search` | `grid` or `random` | `grid` | `grid` tries every combination of `params`; `random` tries `n_iter` of them. |
 | `n_iter` | whole number ≥ 1 | `20` | With `search: random`, combinations tried per candidate (at most the grid size). |
@@ -173,6 +174,38 @@ Without `metrics`, classification reports `accuracy`, `precision_weighted` and
   needs `predict_proba`, on `svm`) is skipped for that model, with a note.
 
 Not sure which metric fits your problem? See [Choosing a metric](guides/metrics.md).
+
+### Your own test set
+
+By default FitRank puts `test_size` of the rows aside. To score every model on
+a test set of your own (the official test set of a competition, the most
+recent months of a time series, a clean test set while the training data
+changes), give it in `test_data`:
+
+```yaml
+data:
+  path: data/train.csv
+  target: label
+evaluation:
+  test_data: data/test.csv
+  cv: 5
+```
+
+- Nothing is split: all the rows of `data.path` are used for the search and
+  the cross-validation, and every model is scored on the whole test set.
+- The test set gets the same columns as the training data (`features` /
+  `exclude`); its extra columns are ignored.
+- `test_size` cannot be written with `test_data`: choose one of the two.
+- Before training, FitRank stops with a clear error when the test set lacks
+  the target or a feature column, has missing values without an imputer, or
+  (classification) has a class the training data never shows. A training
+  class with no test row only gives a warning: `roc_auc` and macro averages
+  can then mislead.
+- `metadata.json` records where the test set came from and its SHA-256
+  fingerprint: two runs with the same fingerprint were scored on exactly the
+  same rows.
+
+In Python, pass a DataFrame or a path: `Benchmark(data=train, test_data=test, ...)`.
 
 ## output
 

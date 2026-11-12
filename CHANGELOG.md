@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `evaluation.test_data` (YAML) and `Benchmark(test_data=...)` (a DataFrame or
+  a path): score every model on a test set of your own instead of splitting
+  `test_size` of the rows. All of `data` is then used for training and
+  cross-validation. Before training, a missing target or column, or a test
+  class never seen in training, stops the run with a clear `DataError`; a
+  training class with no test row gives a `FitRankWarning`. Writing
+  `test_size` too is a `ConfigError`.
+- `Results.n_train` and `Results.n_test`, and in `metadata.json` the row
+  counts (`rows`) and, with `test_data`, its source and SHA-256 fingerprint.
+- `fitrank validate` says how many rows the test set has and where it comes from.
+
 ## [1.1.2] - 2026-11-11
 
 ### Fixed
