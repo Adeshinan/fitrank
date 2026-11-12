@@ -43,9 +43,10 @@ preprocessing:
 # The missing values are filled inside each cross-validation fold, with the
 # median of the training rows only: the validation rows never leak into it.
 
+# No pca here, unlike examples/titanic.yaml: PCA + trees gives different CV scores
+# from one Linux runner to another. PCA stays covered by the Iris example.
 reduction:
   - none
-  - pca: {n_components: [3, 5]}
 
 models:
   - name: logistic_regression
