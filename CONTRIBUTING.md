@@ -83,7 +83,9 @@ docs(readme): add a regression example
 3. Open the pull request and fill in the template: link the issue, describe what
    changed, list the tests you added.
 4. CI must be green: ruff, mypy, the tests on Linux, macOS and Windows with
-   Python 3.10 to 3.13, coverage of at least 85 %.
+   Python 3.10 to 3.13, coverage of at least 85 %, and the non-regression job.
+   **A pull request that breaks `tests/regression/` is not merged**: see
+   [Non-regression tests](#non-regression-tests).
 5. Pull requests are merged with **Squash and merge**, so the title becomes the
    commit message: write it as a Conventional Commit.
 
@@ -117,6 +119,36 @@ mkdocs build --strict            # what CI runs: fails on a broken link
 ```
 
 Every push to `main` publishes the site to https://adeshinan.github.io/fitrank/.
+
+## Non-regression tests
+
+`tests/regression/` checks that what worked in FitRank 1.1 still works:
+
+- **Golden leaderboards**: the Iris, Diabetes and Titanic examples (frozen copies
+  in `tests/regression/configs/`) give the same ranking, parameters and notes,
+  and the same scores to 1e-6, as the files in `tests/regression/golden/`. They
+  run in the "Non-regression" CI job, on Linux with the versions pinned in
+  `tests/regression/constraints.txt`. Elsewhere they are skipped.
+- **Public API**: names exported by `fitrank`, parameters and their defaults,
+  config keys and defaults, registered models, reductions and steps.
+- **Command line**: commands, options, exit codes, the files of a run folder and
+  the columns of `leaderboard.csv` / `leaderboard.json`.
+- **Documented configs**: every YAML example of the READMEs and of `docs/` is
+  still valid.
+
+Adding something never breaks these tests; removing, renaming or changing a
+default does. If a change of behaviour is really intended, update the test in
+the same pull request and say why in its description. To regenerate the golden
+leaderboards after an intended change of results:
+
+```bash
+pip install -e ".[dev]" -c tests/regression/constraints.txt
+python tests/regression/golden.py
+FITRANK_GOLDEN=1 pytest tests/regression    # also runs them outside Linux
+```
+
+The notebook `examples/try_fitrank.ipynb` is executed before each release (and
+by hand from the Actions tab, workflow "Notebook").
 
 ## Releases
 

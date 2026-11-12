@@ -1,0 +1,10 @@
+# The library versions the golden leaderboards were recorded with.
+# The "Non-regression" CI job installs exactly these: pip install -e ".[dev]" -c this file.
+# A new scikit-learn can move the last digits of a score without FitRank being involved:
+# update these pins and regenerate the golden files in a PR of their own.
+scikit-learn==1.9.1
+numpy==2.5.4
+pandas==3.1.0
+scipy==1.18.1
+joblib==1.6.0
+threadpoolctl==3.7.0

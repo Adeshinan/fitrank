@@ -1,0 +1,9 @@
+rank,model,reduction,status,cv_f1_weighted,cv_std,test_f1_weighted,test_accuracy,test_f1_macro,best_params,error,notes
+1,svm,none,ok,0.9749019607843138,0.02049246320759781,0.9333333333333333,0.9333333333333333,0.9333333333333332,"{""C"": 0.1, ""class_weight"": null, ""kernel"": ""linear""}",,
+2,knn,none,ok,0.9665359477124185,0.016732026143790834,0.9326599326599326,0.9333333333333333,0.9326599326599326,"{""n_neighbors"": 3, ""weights"": ""uniform""}",,
+3,logistic_regression,none,ok,0.9663367569249923,0.03162306668752773,1.0,1.0,1.0,"{""C"": 10, ""class_weight"": null}",,
+4,random_forest,none,ok,0.9579707438530969,0.02677171608964413,0.9665831244778613,0.9666666666666667,0.9665831244778612,"{""max_depth"": 3, ""n_estimators"": 100}",,
+5,svm,pca,ok,0.9248366013071896,0.031268208843412824,0.8997493734335839,0.9,0.899749373433584,"{""C"": 0.1, ""class_weight"": null, ""kernel"": ""linear"", ""n_components"": 2}",,
+6,logistic_regression,pca,ok,0.9247058823529413,0.04098492641519568,0.8997493734335839,0.9,0.899749373433584,"{""C"": 10, ""class_weight"": null, ""n_components"": 2}",,
+7,random_forest,pca,ok,0.9079707438530967,0.016738311621385525,0.8997493734335839,0.9,0.899749373433584,"{""max_depth"": null, ""n_components"": 2, ""n_estimators"": 100}",,
+8,knn,pca,ok,0.8911079987550575,0.02033285702260931,0.8997493734335839,0.9,0.899749373433584,"{""n_components"": 2, ""n_neighbors"": 11, ""weights"": ""distance""}",,
