@@ -1,12 +1,15 @@
 """Reference leaderboards ("golden files") recorded with FitRank 1.1.2.
 
 The configs in ``configs/`` are frozen copies of the shipped examples: editing an
-example never moves the reference. Scores depend on the library versions, so the
-references are only compared with the versions pinned in ``constraints.txt``.
+example never moves the reference. Scores depend on the library versions and on
+the platform (PCA goes through OpenBLAS, whose last digits differ between Windows
+and Linux, and trees turn them into other choices), so the references are
+recorded and compared on Linux only, in the "Non-regression" CI job, with the
+versions pinned in ``constraints.txt``.
 
-Regenerate them only when a change of results is intended, and say why in the PR::
-
-    python tests/regression/golden.py
+That job uploads the leaderboards it computed (``out/``) as the artifact
+"golden-leaderboards". Regenerate the references only when a change of results
+is intended, by copying that artifact into ``golden/``, and say why in the PR.
 """
 
 import json
@@ -23,6 +26,7 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 CONFIGS = HERE / "configs"
 GOLDEN = HERE / "golden"
+OUT = HERE / "out"  # the leaderboards of the last run, uploaded by CI
 CONSTRAINTS = HERE / "constraints.txt"
 EXAMPLES = ["iris", "diabetes", "titanic"]
 

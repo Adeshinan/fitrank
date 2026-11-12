@@ -138,14 +138,13 @@ Every push to `main` publishes the site to https://adeshinan.github.io/fitrank/.
 
 Adding something never breaks these tests; removing, renaming or changing a
 default does. If a change of behaviour is really intended, update the test in
-the same pull request and say why in its description. To regenerate the golden
-leaderboards after an intended change of results:
+the same pull request and say why in its description.
 
-```bash
-pip install -e ".[dev]" -c tests/regression/constraints.txt
-python tests/regression/golden.py
-FITRANK_GOLDEN=1 pytest tests/regression    # also runs them outside Linux
-```
+The golden leaderboards are recorded on Linux: PCA goes through OpenBLAS, whose
+last digits differ between platforms, and trees can turn them into other
+choices of parameters. After an intended change of results, download the
+artifact "golden-leaderboards" of the "Non-regression" job (the leaderboards
+that job computed) and copy its CSV files into `tests/regression/golden/`.
 
 The notebook `examples/try_fitrank.ipynb` is executed before each release (and
 by hand from the Actions tab, workflow "Notebook").

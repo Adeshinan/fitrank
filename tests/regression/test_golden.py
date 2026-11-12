@@ -13,7 +13,7 @@ import sys
 import numpy as np
 import pandas as pd
 import pytest
-from golden import EXACT, EXAMPLES, GOLDEN, leaderboard, score_columns, version_mismatches
+from golden import EXACT, EXAMPLES, GOLDEN, OUT, leaderboard, score_columns, version_mismatches
 
 FORCED = os.environ.get("FITRANK_GOLDEN") == "1"
 ATOL = 1e-6
@@ -45,6 +45,8 @@ def test_leaderboard_unchanged(name: str) -> None:
         pytest.skip(reason)
     expected = pd.read_csv(GOLDEN / f"{name}.csv")
     got = leaderboard(name)
+    OUT.mkdir(exist_ok=True)
+    got.to_csv(OUT / f"{name}.csv", index=False, lineterminator="\n")  # the new golden file
     scores = score_columns(expected)
 
     assert list(got.columns) == list(expected.columns), "the leaderboard columns changed"
