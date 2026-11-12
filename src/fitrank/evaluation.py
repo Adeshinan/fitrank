@@ -1,6 +1,7 @@
 """Evaluate every candidate under exactly the same conditions.
 
-The test set is put aside first and only used for the final score. The same
+The test set is put aside first (or given apart, ``evaluation.test_data``) and
+only used for the final score. The same
 CV folds and the same metrics are used for every candidate, and a candidate
 that fails is reported as ``failed`` without stopping the others. A model that
 stops at its iteration limit gets a note instead of a raw ConvergenceWarning.
@@ -114,13 +115,22 @@ def split_data(
     except ValueError as exc:
         raise DataError("cannot put the test set aside", [str(exc)]) from None
 
+    check_folds(len(X_train), config)
+    return X_train, X_test, y_train, y_test
+
+
+def check_folds(n_train: int, config: FitRankConfig) -> None:
+    """Check that the training set has enough rows for the CV folds.
+
+    Raises:
+        DataError: fewer rows than ``evaluation.cv``.
+    """
     folds = config.evaluation.cv
-    if len(X_train) < folds:
+    if n_train < folds:
         raise DataError(
             f"not enough rows for {folds}-fold cross-validation",
-            [f"the training set has {len(X_train)} rows; lower evaluation.cv or add data"],
+            [f"the training set has {n_train} rows; lower evaluation.cv or add data"],
         )
-    return X_train, X_test, y_train, y_test
 
 
 def make_folds(config: FitRankConfig) -> KFold | StratifiedKFold:
@@ -137,16 +147,25 @@ def evaluate(
     y: pd.Series,
     config: FitRankConfig,
     on_result: Callable[[CandidateResult], None] | None = None,
+    *,
+    test: tuple[pd.DataFrame, pd.Series] | None = None,
 ) -> list[CandidateResult]:
     """Search, cross-validate and test every candidate, in order.
 
+    Without ``test``, the test set is put aside from ``X, y`` (``test_size``).
+    With ``test = (X_test, y_test)``, nothing is split: all of ``X, y`` is
+    used for the search and the CV, and every candidate is scored on ``test``.
     ``on_result`` is called after each candidate, e.g. to advance a progress bar.
 
     Raises:
         DataError: the data cannot be split (see ``split_data``). A failing
             candidate never raises: it is returned with ``status="failed"``.
     """
-    X_train, X_test, y_train, y_test = split_data(X, y, config)
+    if test is None:
+        X_train, X_test, y_train, y_test = split_data(X, y, config)
+    else:
+        check_folds(len(X), config)
+        (X_train, y_train), (X_test, y_test) = (X, y), test
     folds = make_folds(config)
     results = []
     for candidate in candidates:

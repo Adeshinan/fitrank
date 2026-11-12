@@ -8,7 +8,7 @@ Each run gets its own folder, so nothing is ever overwritten::
     ├── leaderboard.json      > the formats listed in output.formats
     ├── leaderboard.md       /
     ├── best_model.joblib    if output.save_best_model is true
-    └── metadata.json        versions, date, duration, best candidate
+    └── metadata.json        versions, date, duration, best candidate, rows, test set
 """
 
 import json
@@ -52,8 +52,15 @@ class Results:
         results: Sequence[CandidateResult],
         config: FitRankConfig,
         duration_seconds: float | None = None,
+        *,
+        n_train: int | None = None,
+        n_test: int | None = None,
+        test_data: dict[str, str] | None = None,
     ) -> None:
         self.config = config
+        self.n_train = n_train  # rows used for the search and the CV
+        self.n_test = n_test  # rows of the test set: test_size share, or all of test_data
+        self.test_data = test_data  # with test_data: {"source": ..., "sha256": ...}
         self.metric = primary_metric(config)
         ok = sorted(
             (r for r in results if r.status == "ok"),
@@ -178,6 +185,8 @@ class Results:
             "best": None
             if best is None
             else {"model": best.model_name, "reduction": best.reduction_name, "cv": best.cv_mean},
+            "rows": {"train": self.n_train, "test": self.n_test},
+            "test_data": self.test_data,  # null when the test set was split from data.path
             "versions": {
                 "python": platform.python_version(),
                 "fitrank": __version__,
@@ -259,6 +268,12 @@ def _config_dict(config: FitRankConfig) -> dict[str, Any]:
                 del model[key]
     data["data"]["path"] = config.data.path.as_posix()  # same file on every OS
     data["project"]["output_dir"] = config.project.output_dir.as_posix()
+    test_data = config.evaluation.test_data
+    if test_data is not None:  # test_size does not apply, and both together are refused
+        del data["evaluation"]["test_size"]
+        data["evaluation"]["test_data"] = test_data.as_posix()
+    else:
+        del data["evaluation"]["test_data"]  # a v1.1 config.yaml, key for key
     return data
 
 
