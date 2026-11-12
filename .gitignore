@@ -20,6 +20,7 @@ env/
 .coverage.*
 htmlcov/
 coverage.xml
+tests/regression/out/
 
 # Tool caches
 .mypy_cache/

@@ -1,0 +1,42 @@
+name: Notebook
+
+# Runs examples/try_fitrank.ipynb from top to bottom with the FitRank of this
+# commit. Called by the release workflow before publishing, and runnable by hand
+# from the Actions tab. Not on every PR: it downloads data (seaborn's Titanic)
+# and takes a few minutes.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  notebook:
+    name: Run try_fitrank.ipynb
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        # FitRank from this commit: the notebook's "%pip install fitrank" finds it installed.
+        run: python -m pip install . seaborn nbclient nbformat ipykernel
+      - name: Execute the notebook
+        working-directory: examples
+        run: |
+          python - <<'EOF'
+          import nbformat
+          from nbclient import NotebookClient
+
+          notebook = nbformat.read("try_fitrank.ipynb", as_version=4)
+          NotebookClient(notebook, timeout=900, kernel_name="python3").execute()
+          errors = [
+              output
+              for cell in notebook.cells
+              for output in cell.get("outputs", [])
+              if output.get("output_type") == "error"
+          ]
+          assert not errors, errors
+          print(f"{len(notebook.cells)} cells executed without error")
+          EOF

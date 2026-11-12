@@ -110,7 +110,10 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
-markers = ["e2e: runs the installed fitrank command in a new process (slow)"]
+markers = [
+    "e2e: runs the installed fitrank command in a new process (slow)",
+    "golden: compares the examples with the reference leaderboards (pinned versions, ~2 min)",
+]
 
 [tool.coverage.run]
 source = ["fitrank"]

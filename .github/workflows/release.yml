@@ -47,9 +47,13 @@ jobs:
           name: dist
           path: dist/
 
+  notebook:
+    name: Notebook
+    uses: ./.github/workflows/notebook.yml
+
   testpypi:
     name: Publish to TestPyPI
-    needs: build
+    needs: [build, notebook]
     if: needs.build.outputs.candidate == 'true'
     runs-on: ubuntu-latest
     environment: testpypi
@@ -66,7 +70,7 @@ jobs:
 
   pypi:
     name: Publish to PyPI
-    needs: build
+    needs: [build, notebook]  # the notebook must run before a version is published
     if: needs.build.outputs.candidate == 'false'
     runs-on: ubuntu-latest
     environment: pypi

@@ -1,0 +1,64 @@
+# FitRank example: classification with real-world data.
+# Predict whether a Titanic passenger survived (1) or not (0), from their
+# ticket class, sex, age, family on board, fare and port of embarkation.
+#
+# Unlike iris, this data has missing values (Age, Fare, Embarked) and text
+# (Sex, Embarked): `fitrank validate` lists what must be declared before
+# training. Every step below answers one of those problems.
+#
+# Run it from the repository root:
+#     fitrank validate examples/titanic.yaml   # check the config and the data (instant)
+#     fitrank run examples/titanic.yaml        # train, compare and rank (15 to 40 s)
+#
+# examples/iris.yaml explains every key; this file comments what is new.
+
+project:
+  name: titanic
+  random_state: 42
+  n_jobs: -1                 # all CPU cores for the search: same results, faster here
+
+data:
+  path: examples/data/titanic.csv
+  target: Survived
+  features: all
+  # Columns that do not help, or that a model would only memorise:
+  # an id, the full name, the ticket and cabin codes, the home town.
+  exclude: [PassengerId, Name, Ticket, Cabin, HomeDest]
+
+task: classification
+
+preprocessing:
+  numeric:
+    columns: [Age, Fare, SibSp, Parch]
+    steps:
+      - imputer: {strategy: median}       # 263 ages and 1 fare are missing
+      - scaler: standard
+  categorical:
+    # Pclass is a number, but 1st, 2nd and 3rd class are categories, not amounts.
+    columns: [Sex, Pclass, Embarked]
+    steps:
+      - imputer: {strategy: most_frequent}  # 2 ports of embarkation are missing
+      - encoder: onehot                     # one 0/1 column per category
+
+# The missing values are filled inside each cross-validation fold, with the
+# median of the training rows only: the validation rows never leak into it.
+
+# No pca here, unlike examples/titanic.yaml: PCA + trees gives different CV scores
+# from one Linux runner to another. PCA stays covered by the Iris example.
+reduction:
+  - none
+
+models:
+  - name: logistic_regression
+    params: {C: [0.1, 1, 10]}
+  - name: random_forest
+    params: {n_estimators: [100, 300], max_depth: [null, 10]}
+  - name: svm
+    params: {C: [1, 10], kernel: [linear, rbf]}
+  - name: decision_tree        # default grid
+
+evaluation:
+  test_size: 0.2
+  cv: 5
+  primary_metric: f1_weighted
+  metrics: [accuracy, precision_weighted, recall_weighted, roc_auc]

@@ -45,7 +45,34 @@ jobs:
       - name: Install
         run: python -m pip install -e ".[dev]"
       - name: Pytest
-        run: pytest --cov --cov-report=term-missing --cov-fail-under=85
+        # The golden leaderboards run once, in the non-regression job.
+        run: pytest -m "not golden" --cov --cov-report=term-missing --cov-fail-under=85
+
+  regression:
+    name: Non-regression (golden leaderboards, pinned versions)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install with the pinned versions
+        run: python -m pip install -e ".[dev]" -c tests/regression/constraints.txt
+      - name: Pytest (tests/regression)
+        env:
+          FITRANK_GOLDEN: "1"  # a version mismatch fails instead of skipping
+          # The same OpenBLAS kernels and one thread on every runner: PCA gives the same digits.
+          OPENBLAS_CORETYPE: Haswell
+          OPENBLAS_NUM_THREADS: "1"
+          OMP_NUM_THREADS: "1"
+        run: pytest tests/regression -v
+      - name: Upload the computed leaderboards
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-leaderboards
+          path: tests/regression/out/
 
   build:
     name: Build package

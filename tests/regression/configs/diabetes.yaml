@@ -1,0 +1,46 @@
+# FitRank example: regression.
+# Predict how much a diabetes patient's disease progresses in one year (a
+# number from 25 to 346) from 10 measurements taken at the start: age, sex,
+# body mass index, blood pressure and 6 blood serum values.
+#
+# Run it from the repository root:
+#     fitrank run examples/diabetes.yaml
+#
+# examples/iris.yaml explains every key; this file only comments what differs.
+
+project:
+  name: diabetes
+
+data:
+  path: examples/data/diabetes.csv
+  target: progression
+
+task: regression
+
+# Two groups, because the columns are of two kinds. Columns that no group
+# lists would pass through unchanged.
+preprocessing:
+  measurements:
+    columns: [age, bmi, bp, total_cholesterol, ldl, hdl, cholesterol_hdl_ratio,
+              log_triglycerides, glucose]
+    steps: [scaler]          # ridge and lasso penalise large coefficients: put the columns on one scale
+  categories:
+    columns: [sex]           # coded 1 or 2: a category, not a quantity
+    steps: [encoder]         # one-hot: one 0/1 column per value
+
+# No reduction section: the default is [none], so 4 models = 4 candidates.
+
+models:
+  - name: ridge              # linear, with an L2 penalty
+  - name: lasso              # linear, with an L1 penalty: can set coefficients to zero
+  - name: polynomial_regression   # adds squares and products of the columns
+    params: {poly__degree: [2]}   # 77 columns from 11; degree 3 (363 columns) overfits here
+  - name: random_forest
+    params: {n_estimators: [100], max_depth: [3, 6]}  # small grid: keeps the example fast
+
+evaluation:
+  cv: 5
+  # The default primary metric for regression is the RMSE (root mean squared
+  # error), in the unit of the target: lower is better.
+  primary_metric: neg_root_mean_squared_error  # scikit-learn names errors neg_...; FitRank shows them positive
+  metrics: [r2, neg_mean_absolute_error]
