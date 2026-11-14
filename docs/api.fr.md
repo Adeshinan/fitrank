@@ -32,6 +32,43 @@ results = Benchmark.from_yaml("fitrank.yaml").run()
 Les erreurs d'utilisation lèvent `ConfigError` ou `DataError`, deux
 `FitRankError`, avec les mêmes messages qu'en ligne de commande.
 
+## Comparer deux classements
+
+`compare_rankings` mesure à quel point deux exécutions sont d'accord sur
+l'ordre des modèles, par exemple sur des données d'entraînement propres et
+bruitées, évaluées sur le même jeu de test :
+
+```python
+from fitrank import Benchmark, compare_rankings
+
+clean = Benchmark(data=train_clean, test_data=test, **setup).run(export=False)
+noisy = Benchmark(data=train_noisy, test_data=test, **setup).run(export=False)
+
+cmp = compare_rankings(clean, noisy)
+cmp.kendall_tau  # 1 = même ordre, 0 = sans rapport, -1 = inversé
+cmp.top1_agree  # le même meilleur modèle des deux côtés ?
+cmp.regret  # score de test perdu, côté propre, en prenant le gagnant bruité
+cmp.table  # model, reduction, reference_rank, other_rank, rank_shift, scores
+cmp.notes  # candidats écartés, ex æquo en tête...
+```
+
+- Les candidats sont associés par (modèle, réduction). Un candidat en échec,
+  ou présent d'un seul côté, est écarté avec une note.
+- Les deux côtés doivent avoir la même métrique principale. Ils sont classés
+  sur le score de validation croisée, comme dans le leaderboard ;
+  `by="test"` les classe sur le score de test.
+- `kendall_tau` est le tau-b de Kendall : les scores égaux comptent comme des
+  ex æquo.
+- Un ex æquo en tête est départagé par l'ordre du leaderboard, avec une
+  note : `top1_agree` et `regret` en dépendent.
+- Chaque côté peut aussi être un DataFrame de leaderboard, ou le
+  `leaderboard.csv` / `leaderboard.json` d'un dossier de résultats.
+
+Avec 5 à 8 modèles, le tau prend peu de valeurs et varie d'un `random_state`
+à l'autre. Avant de lire un changement de tau comme un effet des données,
+calculez le tau entre deux graines sur les mêmes données : c'est la taille du
+bruit.
+
 ## Référence
 
 La référence ci-dessous est générée depuis le code ; elle est en anglais.
@@ -39,6 +76,10 @@ La référence ci-dessous est générée depuis le code ; elle est en anglais.
 ::: fitrank.Benchmark
 
 ::: fitrank.Results
+
+::: fitrank.compare_rankings
+
+::: fitrank.RankingComparison
 
 ::: fitrank.load_model
 
