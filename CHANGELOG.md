@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Results.n_train` and `Results.n_test`, and in `metadata.json` the row
   counts (`rows`) and, with `test_data`, its source and SHA-256 fingerprint.
 - `fitrank validate` says how many rows the test set has and where it comes from.
+- `compare_rankings(reference, other)` measures how much two rankings agree:
+  Kendall's tau-b, whether the best candidate is the same (`top1_agree`), the
+  test score lost by taking the other's winner (`regret`) and a table of
+  ranks. Candidates are matched by (model, reduction); failed or one-sided
+  ones are left out with a note. Each side is a `Results`, a leaderboard
+  DataFrame or a run's `leaderboard.csv` / `.json`.
+- `scipy` is now a declared dependency (it was already installed with
+  scikit-learn).
 
 ## [1.1.2] - 2026-11-11
 

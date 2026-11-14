@@ -32,11 +32,48 @@ results = Benchmark.from_yaml("fitrank.yaml").run()
 User errors raise `ConfigError` or `DataError`, both `FitRankError`, with
 the same messages as the command line.
 
+## Compare two rankings
+
+`compare_rankings` measures how much two runs agree on the order of the
+models, e.g. on clean and on noisy training data, scored on the same test set:
+
+```python
+from fitrank import Benchmark, compare_rankings
+
+clean = Benchmark(data=train_clean, test_data=test, **setup).run(export=False)
+noisy = Benchmark(data=train_noisy, test_data=test, **setup).run(export=False)
+
+cmp = compare_rankings(clean, noisy)
+cmp.kendall_tau  # 1 = same order, 0 = unrelated, -1 = reversed
+cmp.top1_agree  # the same best model on both sides?
+cmp.regret  # test score lost, on the clean side, by taking the noisy winner
+cmp.table  # model, reduction, reference_rank, other_rank, rank_shift, scores
+cmp.notes  # candidates left out, ties at the top...
+```
+
+- Candidates are matched by (model, reduction). One that failed, or that
+  exists on one side only, is left out with a note.
+- Both sides must use the same primary metric. They are ranked on the CV
+  score, as in the leaderboard; `by="test"` ranks them on the test score.
+- `kendall_tau` is Kendall's tau-b: tied scores count as ties.
+- A tie at the top is broken by the leaderboard order, with a note:
+  `top1_agree` and `regret` depend on it.
+- Each side can also be a leaderboard DataFrame, or the `leaderboard.csv` /
+  `leaderboard.json` of a run folder.
+
+With 5 to 8 models, tau takes few values and moves from one `random_state`
+to another. Before reading a change of tau as an effect of the data, compute
+the tau between two seeds on the same data: that is the size of the noise.
+
 ## Reference
 
 ::: fitrank.Benchmark
 
 ::: fitrank.Results
+
+::: fitrank.compare_rankings
+
+::: fitrank.RankingComparison
 
 ::: fitrank.load_model
 
