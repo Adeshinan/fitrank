@@ -91,7 +91,10 @@ suspects = proba.index[confidence < 0.2]  # les lignes auxquelles le modèle cro
 - L'index est celui des lignes d'entraînement (`results.X_train`) : avec
   `test_size`, les lignes non mises de côté ; avec `test_data`, tout `data`.
 - Classification seulement. Un modèle sans `predict_proba` (`svm`) est
-  refusé avec une erreur claire.
+  refusé avec une erreur claire : calibrez-le (`calibrate: sigmoid`) pour
+  en obtenir un.
+- Le modèle est nommé comme dans le classement :
+  `oof_proba("random_forest (calibrated: isotonic)")`.
 - Avec plusieurs réductions, nommez-en une : `oof_proba("knn", reduction="pca")`.
 - `run()` ne calcule rien : le premier appel entraîne les plis, les appels
   suivants renvoient une copie du même résultat.

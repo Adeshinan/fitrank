@@ -134,7 +134,7 @@ réductions et 4 modèles, FitRank évalue 8 candidats.
 ## models
 
 Une liste d'au moins un modèle. Chaque modèle a un `name` ou une `class`, et
-des `params` optionnels.
+des `params` et un `calibrate` optionnels.
 
 ```yaml
 models:
@@ -150,10 +150,43 @@ models:
 | `name` | nom de modèle | Un modèle FitRank : voir [Modèles](models.md). |
 | `class` | chemin de classe | N'importe quel estimateur scikit-learn, par exemple `sklearn.svm.LinearSVC`. |
 | `params` | ensemble de listes | Les valeurs à essayer pour chaque paramètre. Remplace la grille par défaut ; `null` correspond au `None` de Python. |
+| `calibrate` | `sigmoid` ou `isotonic` | Classification seulement : calibre les probabilités du modèle (voir plus bas). |
 
 Sans `params`, un modèle nommé cherche dans sa petite grille par défaut, et une
 classe utilise ses paramètres par défaut. Un paramètre que le modèle n'a pas
 est refusé, avec le nom valide le plus proche.
+
+### Modèles calibrés
+
+Les probabilités d'un modèle sont calibrées quand « 70 % » se réalise environ
+70 % du temps. Les forêts et le boosting sont souvent trop prudents ou trop
+sûrs d'eux ; `calibrate` les corrige, et le même modèle peut tourner brut et
+calibré dans un même classement :
+
+```yaml
+models:
+  - name: random_forest
+  - name: random_forest
+    calibrate: isotonic        # ou sigmoid
+  - name: svm
+    calibrate: sigmoid         # un svm obtient predict_proba
+evaluation:
+  metrics: [neg_brier_score, accuracy]   # le score de Brier : plus bas est meilleur
+```
+
+- Le modèle est enveloppé dans `CalibratedClassifierCV(method=..., cv=3)` de
+  scikit-learn : dans chaque jeu d'entraînement, environ 2/3 des lignes
+  entraînent le modèle et 1/3 la calibration, trois fois. L'entraînement prend
+  environ 3 fois plus de temps.
+- Il s'appelle `random_forest (calibrated: isotonic)` dans le classement. Les
+  `params` s'écrivent comme d'habitude (`n_estimators`, pas
+  `estimator__n_estimators`).
+- `sigmoid` ajuste 2 nombres et convient aux petits jeux ; `isotonic` est plus
+  souple mais peut surapprendre sous environ 1 000 lignes : comparez les deux.
+- `neg_brier_score` (le score de Brier, erreur quadratique moyenne des
+  probabilités) mesure la calibration ; avec plus de deux classes, il demande
+  scikit-learn 1.7 ou plus récent.
+- `calibrate` avec `task: regression` est refusé.
 
 ## evaluation
 

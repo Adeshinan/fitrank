@@ -250,7 +250,9 @@ def test_unknown_key_in_a_model(tmp_path: Path) -> None:
         """,
     )
 
-    assert error.details == ["models[0].grid: unknown key (allowed: name, class, params)"]
+    assert error.details == [
+        "models[0].grid: unknown key (allowed: name, class, params, calibrate)"
+    ]
 
 
 def test_unknown_key_in_a_preprocessing_group(tmp_path: Path) -> None:

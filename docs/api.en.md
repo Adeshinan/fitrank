@@ -86,7 +86,9 @@ suspects = proba.index[confidence < 0.2]  # rows the model hardly believes
 - The index is the one of the training rows (`results.X_train`): with
   `test_size`, the rows not put aside; with `test_data`, all of `data`.
 - Classification only. A model without `predict_proba` (`svm`) is refused
-  with a clear error.
+  with a clear error: calibrate it (`calibrate: sigmoid`) to get one.
+- The model is named as in the leaderboard:
+  `oof_proba("random_forest (calibrated: isotonic)")`.
 - With several reductions, name one: `oof_proba("knn", reduction="pca")`.
 - Nothing is computed by `run()`: the first call fits the folds, later calls
   return a copy of the same result.

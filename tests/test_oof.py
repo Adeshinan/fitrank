@@ -103,8 +103,8 @@ def test_model_without_predict_proba_is_explained(results: Results) -> None:
     with pytest.raises(FitRankError) as caught:
         results.oof_proba("svm")
     assert "svm + none has no predict_proba" in str(caught.value)
-    assert "choose a model that has it" in str(caught.value)
-    assert "or add probability: [true] to its params (deprecated" in str(caught.value)
+    assert "calibrate it in the config (calibrate: sigmoid)" in str(caught.value)
+    assert "or choose a model that has it" in str(caught.value)
 
 
 @pytest.mark.filterwarnings("ignore:The `probability` parameter was deprecated:FutureWarning")

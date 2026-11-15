@@ -129,7 +129,7 @@ and 4 models, FitRank evaluates 8 candidates.
 ## models
 
 A list of at least one model. Each model has a `name` or a `class`, and
-optional `params`.
+optional `params` and `calibrate`.
 
 ```yaml
 models:
@@ -145,10 +145,42 @@ models:
 | `name` | model name | A FitRank model: see [Models](models.md). |
 | `class` | class path | Any scikit-learn estimator, e.g. `sklearn.svm.LinearSVC`. |
 | `params` | mapping of lists | The values to try for each parameter. Replaces the default grid; `null` is Python's `None`. |
+| `calibrate` | `sigmoid` or `isotonic` | Classification only: calibrate the model's probabilities (see below). |
 
 Without `params`, a named model searches its small default grid, and a class
 uses its default parameters. A parameter the model does not have is refused,
 with the closest valid name.
+
+### Calibrated models
+
+A model's probabilities are calibrated when "70 %" comes true about 70 % of
+the time. Forests and boosting are often too cautious or too sure of
+themselves; `calibrate` corrects them, and the same model can run raw and
+calibrated in one leaderboard:
+
+```yaml
+models:
+  - name: random_forest
+  - name: random_forest
+    calibrate: isotonic        # or sigmoid
+  - name: svm
+    calibrate: sigmoid         # an svm gets predict_proba
+evaluation:
+  metrics: [neg_brier_score, accuracy]   # the Brier score: lower is better
+```
+
+- The model is wrapped in scikit-learn's `CalibratedClassifierCV(method=...,
+  cv=3)`: inside each training set, about 2/3 of the rows fit the model and
+  1/3 fits the calibration, three times. Training takes about 3 times longer.
+- It is named `random_forest (calibrated: isotonic)` in the leaderboard.
+  `params` are written as usual (`n_estimators`, not
+  `estimator__n_estimators`).
+- `sigmoid` fits 2 numbers and suits small datasets; `isotonic` is more
+  flexible but can overfit below about 1,000 rows: compare the two.
+- `neg_brier_score` (the Brier score, mean squared error of the
+  probabilities) measures calibration; on more than two classes it needs
+  scikit-learn 1.7 or later.
+- `calibrate` with `task: regression` is refused.
 
 ## evaluation
 

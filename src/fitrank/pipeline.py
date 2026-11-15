@@ -4,6 +4,9 @@ One candidate per (reduction, model) pair::
 
     Pipeline([("preprocessing", ColumnTransformer), ("reduction", ...), ("model", ...)])
 
+With ``calibrate``, the model step is ``CalibratedClassifierCV(model)`` and its
+grid keys gain ``estimator__``: ``model__estimator__n_estimators``.
+
 Preprocessing lives inside the pipeline, so during cross-validation it is
 fitted on the training folds only (no data leakage).
 """
@@ -11,10 +14,11 @@ fitted on the training folds only (no data leakage).
 from dataclasses import dataclass
 from typing import Any
 
-from sklearn.base import clone
+from sklearn.base import BaseEstimator, clone
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.pipeline import Pipeline
 
-from fitrank.config import FitRankConfig, check_models, model_spec
+from fitrank.config import FitRankConfig, ModelConfig, check_models, model_spec
 from fitrank.exceptions import ConfigError
 from fitrank.preprocessing import build_preprocessing
 from fitrank.reduction import build_reduction
@@ -64,6 +68,7 @@ def build_candidates(config: FitRankConfig) -> list[Candidate]:
     for reduction_name, reduction, reduction_grid in reductions:
         for model in config.models:
             estimator, model_grid = model_spec(model, config).build(model.params, random_state)
+            estimator, model_grid = _calibrated(estimator, model_grid, model)
             pipeline = Pipeline(
                 [
                     ("preprocessing", clone(preprocessing)),
@@ -74,6 +79,20 @@ def build_candidates(config: FitRankConfig) -> list[Candidate]:
             grid = _prefixed("reduction", reduction_grid) | _prefixed("model", model_grid)
             candidates.append(Candidate(model.label, reduction_name, pipeline, grid))
     return candidates
+
+
+# Folds of the calibration inside each training set: ~2/3 fits the model, ~1/3 calibrates.
+CALIBRATION_CV = 3
+
+
+def _calibrated(
+    estimator: BaseEstimator, grid: Grid, model: ModelConfig
+) -> tuple[BaseEstimator, Grid]:
+    """Wrap ``estimator`` in ``CalibratedClassifierCV`` when ``calibrate`` is set."""
+    if model.calibrate is None:
+        return estimator, grid
+    wrapped = CalibratedClassifierCV(estimator, method=model.calibrate, cv=CALIBRATION_CV)
+    return wrapped, _prefixed("estimator", grid)
 
 
 def _prefixed(step: str, grid: Grid) -> Grid:
