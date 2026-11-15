@@ -65,6 +65,38 @@ With 5 to 8 models, tau takes few values and moves from one `random_state`
 to another. Before reading a change of tau as an effect of the data, compute
 the tau between two seeds on the same data: that is the size of the noise.
 
+## Out-of-fold probabilities
+
+`results.oof_proba(model)` gives, for every training row, the class
+probabilities predicted by a model that never saw that row: the candidate's
+pipeline (preprocessing, reduction, model) with its best parameters, refitted
+on the other folds of the run's own cross-validation. They feed label-error
+detection (e.g. `cleanlab.filter.find_label_issues`), error analysis or
+stacking:
+
+```python
+results = Benchmark(data=train, test_data=test, **setup).run(export=False)
+
+proba = results.oof_proba("random_forest")  # one row per training row, one column per class
+labels = results.y_train.loc[proba.index]  # the observed labels, in the same order
+confidence = proba.to_numpy()[range(len(proba)), proba.columns.get_indexer(labels)]
+suspects = proba.index[confidence < 0.2]  # rows the model hardly believes
+```
+
+- The index is the one of the training rows (`results.X_train`): with
+  `test_size`, the rows not put aside; with `test_data`, all of `data`.
+- Classification only. A model without `predict_proba` (`svm`) is refused
+  with a clear error.
+- With several reductions, name one: `oof_proba("knn", reduction="pca")`.
+- Nothing is computed by `run()`: the first call fits the folds, later calls
+  return a copy of the same result.
+
+The rows are not fully out-of-sample: each row is predicted by a model that
+did not see it, but the best parameters were chosen with these same folds,
+so with every row. This is common practice for label-error detection.
+`params="default"` is stricter: parameters given a single value in `params`
+(fixed in advance) are kept, the searched ones use the scikit-learn defaults.
+
 ## Reference
 
 ::: fitrank.Benchmark

@@ -19,13 +19,16 @@ import warnings
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import joblib
 import numpy as np
 import pandas as pd
 import sklearn
 import yaml
+from sklearn.base import clone
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.model_selection import cross_val_predict
 from sklearn.pipeline import Pipeline
 
 from fitrank.config import FitRankConfig
@@ -33,10 +36,12 @@ from fitrank.evaluation import (
     CandidateResult,
     display_name,
     higher_is_better,
+    make_folds,
     primary_metric,
     secondary_metrics,
 )
 from fitrank.exceptions import FitRankError, FitRankWarning
+from fitrank.pipeline import build_candidates
 
 FORMATS = {"csv": "leaderboard.csv", "json": "leaderboard.json", "markdown": "leaderboard.md"}
 CONFIG_FILE = "config.yaml"
@@ -56,11 +61,16 @@ class Results:
         n_train: int | None = None,
         n_test: int | None = None,
         test_data: dict[str, str] | None = None,
+        X_train: pd.DataFrame | None = None,
+        y_train: pd.Series | None = None,
     ) -> None:
         self.config = config
         self.n_train = n_train  # rows used for the search and the CV
         self.n_test = n_test  # rows of the test set: test_size share, or all of test_data
         self.test_data = test_data  # with test_data: {"source": ..., "sha256": ...}
+        self.X_train = X_train  # the training rows (search and CV), kept for oof_proba
+        self.y_train = y_train
+        self._oof: dict[tuple[str, str, str], pd.DataFrame] = {}  # oof_proba, once computed
         self.metric = primary_metric(config)
         ok = sorted(
             (r for r in results if r.status == "ok"),
@@ -124,6 +134,129 @@ class Results:
                 [f"{r.reduction_name} + {r.model_name}: {r.error}" for r in self.results],
             )
         return best.best_estimator
+
+    def oof_proba(
+        self,
+        model: str,
+        reduction: str | None = None,
+        *,
+        params: Literal["best", "default"] = "best",
+    ) -> pd.DataFrame:
+        """Out-of-fold class probabilities of one candidate, for every training row.
+
+        Each row is predicted by a model fitted on the other CV folds, never on
+        itself: the same pipeline (preprocessing, reduction, model), the same
+        folds as the run's cross-validation and, by default, the best
+        parameters found. Nothing is computed until this is called; the result
+        is then kept, and a copy is returned.
+
+        The rows are not fully out-of-sample: the best parameters were chosen
+        with these same folds, so with every row (common practice, e.g. for
+        cleanlab). ``params="default"`` is stricter: the parameters given a
+        single value in ``params`` (fixed in advance) are kept, the searched
+        ones fall back to the scikit-learn defaults.
+
+        Args:
+            model: the model name, as in the leaderboard.
+            reduction: which reduction, when the model ran with several.
+            params: ``"best"`` (the search's choice) or ``"default"``.
+
+        Returns:
+            One row per training row (same index as ``X_train``), one column
+            per class (sorted), each row summing to 1.
+
+        Raises:
+            FitRankError: not a classification run, no training rows kept, an
+                unknown, ambiguous or failed candidate, or a model without
+                ``predict_proba`` (e.g. ``svm`` needs ``probability: [true]``).
+        """
+        if self.config.task != "classification":
+            raise FitRankError(
+                "oof_proba is for classification only",
+                [f"task is {self.config.task!r}: a regression model has no class probabilities"],
+            )
+        if params not in ("best", "default"):
+            raise ValueError(f"params must be 'best' or 'default', got {params!r}")
+        if self.X_train is None or self.y_train is None:
+            raise FitRankError(
+                "no training rows in these results",
+                ["oof_proba needs the Results returned by Benchmark.run(), which keeps them"],
+            )
+        result = self._candidate(model, reduction)
+        label = f"{result.model_name} + {result.reduction_name}"
+        key = (result.model_name, result.reduction_name, params)
+        if key not in self._oof:
+            pipeline = self._pipeline(result, params)
+            if not hasattr(pipeline, "predict_proba"):
+                fixes = ["choose a model that has it, e.g. logistic_regression or random_forest"]
+                if "model__probability" in pipeline.get_params():  # svm
+                    fixes.append(
+                        "or add probability: [true] to its params (deprecated since"
+                        " scikit-learn 1.9, removed in 1.11)"
+                    )
+                raise FitRankError(
+                    f"{label} has no predict_proba: no probabilities to return", fixes
+                )
+            with warnings.catch_warnings():  # counted in the leaderboard notes already
+                warnings.filterwarnings("ignore", category=ConvergenceWarning)
+                proba = cross_val_predict(
+                    pipeline,
+                    self.X_train,
+                    self.y_train,
+                    cv=make_folds(self.config),
+                    method="predict_proba",
+                    n_jobs=self.config.project.n_jobs,
+                )
+            classes = np.unique(self.y_train)  # the column order of predict_proba
+            self._oof[key] = pd.DataFrame(proba, index=self.X_train.index, columns=classes)
+        copy: pd.DataFrame = self._oof[key].copy()  # the caller may change it
+        return copy
+
+    def _candidate(self, model: str, reduction: str | None) -> CandidateResult:
+        """The one candidate named by ``model`` (and ``reduction``)."""
+        matches = [
+            r
+            for r in self.results
+            if r.model_name == model and reduction in (None, r.reduction_name)
+        ]
+        named = f"{model} + {reduction}" if reduction else model
+        if not matches:
+            names = ", ".join(f"{r.model_name} + {r.reduction_name}" for r in self.results)
+            raise FitRankError(f"no candidate {named!r} in these results", [f"candidates: {names}"])
+        if len(matches) > 1:
+            reductions = [r.reduction_name for r in matches]
+            if reduction is None and len(set(reductions)) == len(reductions):
+                raise FitRankError(
+                    f"{model!r} ran with {len(matches)} reductions: choose one",
+                    [f"oof_proba({model!r}, reduction={name!r})" for name in reductions],
+                )
+            raise FitRankError(
+                f"{named!r} is declared more than once in models",
+                ["oof_proba finds a candidate by its model and reduction names"],
+            )
+        result = matches[0]
+        if result.status != "ok" or result.best_estimator is None:
+            raise FitRankError(
+                f"{result.model_name} + {result.reduction_name} failed: no model to predict with",
+                [str(result.error)],
+            )
+        return result
+
+    def _pipeline(self, result: CandidateResult, params: str) -> Pipeline:
+        """An unfitted copy of the candidate's pipeline, with the chosen parameters."""
+        if params == "best":
+            best: Pipeline = clone(result.best_estimator)
+            return best
+        candidate = next(
+            c
+            for c in build_candidates(self.config)
+            if (c.model_name, c.reduction_name) == (result.model_name, result.reduction_name)
+        )
+        fixed = {
+            name: values[0] for name, values in candidate.param_grid.items() if len(values) == 1
+        }
+        default: Pipeline = candidate.pipeline.set_params(**fixed)
+        return default
 
     def export(
         self, output_dir: str | Path | None = None, formats: Sequence[str] | None = None

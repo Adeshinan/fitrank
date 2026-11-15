@@ -25,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ranks. Candidates are matched by (model, reduction); failed or one-sided
   ones are left out with a note. Each side is a `Results`, a leaderboard
   DataFrame or a run's `leaderboard.csv` / `.json`.
+- `Results.oof_proba(model, reduction=None)`: out-of-fold class probabilities
+  for every training row, from the candidate's pipeline with its best
+  parameters and the run's own CV folds; for label-error detection (e.g.
+  cleanlab), error analysis or stacking. Computed on the first call only.
+  `params="default"` keeps only the parameters fixed in advance.
+  `Results.X_train` and `Results.y_train` hold the training rows.
 - `scipy` is now a declared dependency (it was already installed with
   scikit-learn).
 
