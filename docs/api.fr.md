@@ -69,6 +69,41 @@ Avec 5 à 8 modèles, le tau prend peu de valeurs et varie d'un `random_state`
 calculez le tau entre deux graines sur les mêmes données : c'est la taille du
 bruit.
 
+## Probabilités hors échantillon
+
+`results.oof_proba(model)` donne, pour chaque ligne d'entraînement, les
+probabilités des classes prédites par un modèle qui n'a jamais vu cette
+ligne : le pipeline du candidat (prétraitement, réduction, modèle) avec ses
+meilleurs paramètres, réentraîné sur les autres plis de la validation croisée
+du run. Elles servent à la détection d'étiquettes erronées (par exemple
+`cleanlab.filter.find_label_issues`), à l'analyse d'erreurs ou à l'empilement
+de modèles :
+
+```python
+results = Benchmark(data=train, test_data=test, **setup).run(export=False)
+
+proba = results.oof_proba("random_forest")  # lignes d'entraînement x classes
+labels = results.y_train.loc[proba.index]  # les étiquettes observées, dans le même ordre
+confidence = proba.to_numpy()[range(len(proba)), proba.columns.get_indexer(labels)]
+suspects = proba.index[confidence < 0.2]  # les lignes auxquelles le modèle croit à peine
+```
+
+- L'index est celui des lignes d'entraînement (`results.X_train`) : avec
+  `test_size`, les lignes non mises de côté ; avec `test_data`, tout `data`.
+- Classification seulement. Un modèle sans `predict_proba` (`svm`) est
+  refusé avec une erreur claire.
+- Avec plusieurs réductions, nommez-en une : `oof_proba("knn", reduction="pca")`.
+- `run()` ne calcule rien : le premier appel entraîne les plis, les appels
+  suivants renvoient une copie du même résultat.
+
+Les lignes ne sont pas parfaitement hors échantillon : chaque ligne est
+prédite par un modèle qui ne l'a pas vue, mais les meilleurs paramètres ont
+été choisis avec ces mêmes plis, donc avec toutes les lignes. C'est la
+pratique courante pour la détection d'erreurs d'étiquettes. `params="default"`
+est plus strict : les paramètres qui n'ont qu'une valeur dans `params` (fixés
+à l'avance) sont gardés, ceux qui étaient cherchés prennent les valeurs par
+défaut de scikit-learn.
+
 ## Référence
 
 La référence ci-dessous est générée depuis le code ; elle est en anglais.

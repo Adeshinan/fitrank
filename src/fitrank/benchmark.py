@@ -244,6 +244,8 @@ class Benchmark:
             n_train=len(plan.X_train),
             n_test=len(plan.X_test),
             test_data=test_data,
+            X_train=plan.X_train,
+            y_train=plan.y_train,
         )
         if export:
             results.export()
