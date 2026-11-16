@@ -16,6 +16,7 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import get_scorer
 from sklearn.model_selection import (
@@ -271,10 +272,14 @@ def _stopped_at_max_iter(estimator: Any) -> bool:
     """True when a fitted model stopped at its iteration limit instead of converging.
 
     scikit-learn warns (ConvergenceWarning) exactly when ``n_iter_`` reaches
-    ``max_iter``. A pipeline is checked through its last step.
+    ``max_iter``. A pipeline is checked through its last step, a calibrated
+    model through the models it calibrated (one per calibration fold).
     """
     while isinstance(estimator, Pipeline):
         estimator = estimator.steps[-1][1]
+    if isinstance(estimator, CalibratedClassifierCV):
+        fitted = getattr(estimator, "calibrated_classifiers_", [])
+        return any(_stopped_at_max_iter(c.estimator) for c in fitted)
     if not isinstance(estimator, BaseEstimator):
         return False
     max_iter = estimator.get_params().get("max_iter")

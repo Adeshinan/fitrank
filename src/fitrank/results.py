@@ -108,7 +108,9 @@ class Results:
                 f"test_{name}": _number(r.test_score),
                 **{column: _number(r.secondary.get(m)) for column, m in extra.items()},
                 "fit_s": r.fit_seconds,
-                "best_params": _short_params(r.best_params),
+                "best_params": _short_params(
+                    r.best_params, calibrated="(calibrated: " in r.model_name
+                ),
                 "error": r.error,
                 "notes": "; ".join(r.notes) or None,
             }
@@ -168,7 +170,7 @@ class Results:
         Raises:
             FitRankError: not a classification run, no training rows kept, an
                 unknown, ambiguous or failed candidate, or a model without
-                ``predict_proba`` (e.g. ``svm`` needs ``probability: [true]``).
+                ``predict_proba`` (e.g. ``svm``: add ``calibrate: sigmoid``).
         """
         if self.config.task != "classification":
             raise FitRankError(
@@ -188,12 +190,11 @@ class Results:
         if key not in self._oof:
             pipeline = self._pipeline(result, params)
             if not hasattr(pipeline, "predict_proba"):
-                fixes = ["choose a model that has it, e.g. logistic_regression or random_forest"]
-                if "model__probability" in pipeline.get_params():  # svm
-                    fixes.append(
-                        "or add probability: [true] to its params (deprecated since"
-                        " scikit-learn 1.9, removed in 1.11)"
-                    )
+                fixes = [
+                    "calibrate it in the config (calibrate: sigmoid): a calibrated model"
+                    " has predict_proba",
+                    "or choose a model that has it, e.g. logistic_regression or random_forest",
+                ]
                 raise FitRankError(
                     f"{label} has no predict_proba: no probabilities to return", fixes
                 )
@@ -396,7 +397,7 @@ def _new_run_dir(root: Path, name: str, now: datetime) -> Path:
 def _config_dict(config: FitRankConfig) -> dict[str, Any]:
     data = config.model_dump(mode="json", by_alias=True)  # models[].class, not class_
     for model in data["models"]:  # keep only the key that names the model
-        for key in ("name", "class"):
+        for key in ("name", "class", "calibrate"):  # calibrate: a v1.1 model, key for key
             if model[key] is None:
                 del model[key]
     data["data"]["path"] = config.data.path.as_posix()  # same file on every OS
@@ -410,9 +411,16 @@ def _config_dict(config: FitRankConfig) -> dict[str, Any]:
     return data
 
 
-def _short_params(params: dict[str, Any]) -> dict[str, Any]:
-    """``{"model__C": 1}`` -> ``{"C": 1}``, unless two steps share a parameter name."""
-    short = {key.split("__", 1)[-1]: value for key, value in params.items()}
+def _short_params(params: dict[str, Any], *, calibrated: bool = False) -> dict[str, Any]:
+    """``{"model__C": 1}`` -> ``{"C": 1}``, unless two steps share a parameter name.
+
+    For a calibrated model, ``model__estimator__C`` -> ``C`` too.
+    """
+    short = {}
+    for key, value in params.items():
+        if calibrated:
+            key = key.replace("model__estimator__", "model__", 1)
+        short[key.split("__", 1)[-1]] = value
     return short if len(short) == len(params) else dict(params)
 
 

@@ -163,6 +163,7 @@ class ModelConfig(_Section):
     name: str | None = None  # a FitRank model, e.g. random_forest
     class_: str | None = Field(default=None, alias="class")  # or a class path
     params: dict[str, list[Any]] | None = None  # None = the model's default grid
+    calibrate: Literal["sigmoid", "isotonic"] | None = None  # classification only
 
     @model_validator(mode="after")
     def _check_name_or_class(self) -> "ModelConfig":
@@ -177,8 +178,10 @@ class ModelConfig(_Section):
 
     @property
     def label(self) -> str:
-        """The name shown in the leaderboard: ``ExtraTreesClassifier`` for a class path."""
-        return self.name or str(self.class_).rsplit(".", 1)[-1]
+        """The name shown in the leaderboard: ``ExtraTreesClassifier`` for a class path,
+        ``random_forest (calibrated: isotonic)`` for a calibrated model."""
+        base = self.name or str(self.class_).rsplit(".", 1)[-1]
+        return f"{base} (calibrated: {self.calibrate})" if self.calibrate else base
 
 
 class EvaluationConfig(_Section):
@@ -277,13 +280,19 @@ def check_models(config: FitRankConfig) -> None:
     Raises:
         ConfigError: a model is unknown, only exists for the other task, has
             a class path that is not allowed or not an estimator for the task,
-            ``params`` names a parameter the model does not have, or sets
-            ``n_jobs`` while ``project.n_jobs`` already runs in parallel.
+            ``params`` names a parameter the model does not have, sets
+            ``n_jobs`` while ``project.n_jobs`` already runs in parallel, or
+            ``calibrate`` is used for regression.
     """
     allowed = list_models(config.task)
     choices = f"available for {config.task}: {', '.join(allowed) or 'none'}"
     problems = []
     for i, model in enumerate(config.models):
+        if model.calibrate is not None and config.task != "classification":
+            problems.append(
+                f"models[{i}].calibrate: calibration is for classification only (it adjusts"
+                f" class probabilities), but task is {config.task!r}; remove calibrate"
+            )
         if model.class_ is not None:
             try:
                 spec = model_spec(model, config)

@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cleanlab), error analysis or stacking. Computed on the first call only.
   `params="default"` keeps only the parameters fixed in advance.
   `Results.X_train` and `Results.y_train` hold the training rows.
+- `calibrate: sigmoid | isotonic` on a classification model wraps it in
+  `CalibratedClassifierCV(cv=3)`, so the same model can run raw and calibrated
+  in one leaderboard, e.g. `random_forest (calibrated: isotonic)`. `params`
+  are written as usual; an `svm` gets `predict_proba`. `neg_brier_score`
+  measures the calibration. `calibrate` on a regression task is a
+  `ConfigError`.
 - `scipy` is now a declared dependency (it was already installed with
   scikit-learn).
 
