@@ -214,6 +214,26 @@ print(model.predict(df.drop(columns="species").head()))
 arguments nommés reprennent les sections du YAML, et les deux façons donnent
 les mêmes résultats.
 
+## Des étiquettes fausses : le classement change-t-il ?
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/label_noise_demo.ipynb)
+
+FitRank mesure comment des étiquettes fausses dans les données d'entraînement
+changent le classement, et si un nettoyage le rétablit : chaque exécution est
+notée sur le même jeu de test propre (`test_data`), deux classements se
+comparent (`compare_rankings`), et les lignes suspectes se trouvent avec les
+probabilités hors échantillon (`oof_proba`) d'un modèle calibré (`calibrate`).
+Sur les données Dry Bean avec 20 % d'étiquettes fausses :
+
+| | Tau de Kendall | Même meilleur modèle | Regret |
+|---|---|---|---|
+| propre contre bruité | 0,73 | oui | 0,000 |
+| propre contre nettoyé | 1,00 | oui | 0,000 |
+
+Le [notebook](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/label_noise_demo.ipynb) le déroule en une minute environ ; le guide
+[Mesurer l'effet d'un nettoyage de données](https://adeshinan.github.io/fitrank/fr/guides/cleaning/)
+explique le protocole et ses pièges.
+
 ## N'importe quel modèle scikit-learn, par sa classe
 
 Un modèle que FitRank ne nomme pas peut être donné par le chemin de sa classe :

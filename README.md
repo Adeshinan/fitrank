@@ -206,6 +206,25 @@ print(model.predict(df.drop(columns="species").head()))
 `Benchmark.from_yaml("fitrank.yaml").run()` runs a YAML file. The keyword
 arguments are the YAML sections, and both ways give the same results.
 
+## Wrong labels: does the ranking change?
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/label_noise_demo.ipynb)
+
+FitRank can measure how wrong labels in the training data change the ranking,
+and whether a cleaning brings it back: score every run on the same clean test
+set (`test_data`), compare two rankings (`compare_rankings`), and find the
+suspicious rows with out-of-fold probabilities (`oof_proba`) from a calibrated
+model (`calibrate`). On the Dry Bean data with 20 % wrong labels:
+
+| | Kendall's tau | Same best model | Regret |
+|---|---|---|---|
+| clean vs noisy | 0.73 | yes | 0.000 |
+| clean vs cleaned | 1.00 | yes | 0.000 |
+
+The [notebook](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/label_noise_demo.ipynb) runs it in about a minute; the guide
+[Measure the effect of a data cleaning](https://adeshinan.github.io/fitrank/guides/cleaning/)
+explains the protocol and its traps.
+
 ## Any scikit-learn model, by its class
 
 A model that FitRank does not name can be given by its class path:

@@ -25,7 +25,9 @@ fitrank run fitrank.yaml
 
 Ou essayez-le dans votre navigateur, sans rien installer :
 [ouvrez le notebook dans Colab](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/try_fitrank.ipynb) et exécutez toutes les cellules
-(environ 2 minutes).
+(environ 2 minutes). Un second notebook mesure comment des étiquettes fausses
+changent le classement :
+[label_noise_demo.ipynb](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/label_noise_demo.ipynb) (environ 1 minute).
 
 ## Ce que FitRank garantit
 
