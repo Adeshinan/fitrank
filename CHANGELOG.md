@@ -37,6 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are written as usual; an `svm` gets `predict_proba`. `neg_brier_score`
   measures the calibration. `calibrate` on a regression task is a
   `ConfigError`.
+- `examples/label_noise_demo.ipynb`, a Colab notebook on the Dry Bean data:
+  add 20 % wrong labels, compare the rankings on clean and noisy data, find
+  the suspicious rows with `oof_proba` from a calibrated model, and rank
+  again on the cleaned data, in about a minute. Linked from both READMEs and
+  the documentation home page, and run before every release with
+  `try_fitrank.ipynb`.
+- A guide in English and French, "Measure the effect of a data cleaning": the
+  protocol (one split, a fixed clean test set), how to read
+  `compare_rankings`, and the traps (the size of the noise between seeds,
+  cross-validation scores on noisy labels, rows removed by mistake).
 - `scipy` is now a declared dependency (it was already installed with
   scikit-learn).
 

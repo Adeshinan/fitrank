@@ -1,9 +1,9 @@
 name: Notebook
 
-# Runs examples/try_fitrank.ipynb from top to bottom with the FitRank of this
+# Runs the notebooks of examples/ from top to bottom with the FitRank of this
 # commit. Called by the release workflow before publishing, and runnable by hand
-# from the Actions tab. Not on every PR: it downloads data (seaborn's Titanic)
-# and takes a few minutes.
+# from the Actions tab. Not on every PR: they download data (seaborn's Titanic,
+# UCI's Dry Bean) and take a few minutes.
 
 on:
   workflow_call:
@@ -11,8 +11,12 @@ on:
 
 jobs:
   notebook:
-    name: Run try_fitrank.ipynb
+    name: Run ${{ matrix.notebook }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        notebook: [try_fitrank.ipynb, label_noise_demo.ipynb]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,11 +29,13 @@ jobs:
       - name: Execute the notebook
         working-directory: examples
         run: |
-          python - <<'EOF'
+          NOTEBOOK=${{ matrix.notebook }} python - <<'EOF'
+          import os
+
           import nbformat
           from nbclient import NotebookClient
 
-          notebook = nbformat.read("try_fitrank.ipynb", as_version=4)
+          notebook = nbformat.read(os.environ["NOTEBOOK"], as_version=4)
           NotebookClient(notebook, timeout=900, kernel_name="python3").execute()
           errors = [
               output

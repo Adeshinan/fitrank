@@ -25,6 +25,8 @@ fitrank run fitrank.yaml
 
 Or try it in your browser, nothing to install:
 [open the notebook in Colab](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/try_fitrank.ipynb) and run all the cells (about 2 minutes).
+A second notebook measures how wrong labels change the ranking:
+[label_noise_demo.ipynb](https://colab.research.google.com/github/Adeshinan/fitrank/blob/main/examples/label_noise_demo.ipynb) (about 1 minute).
 
 ## What FitRank guarantees
 

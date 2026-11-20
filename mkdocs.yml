@@ -55,6 +55,7 @@ plugins:
             Guides: Guides
             Classification or regression?: Classification ou régression ?
             Choosing a metric: Choisir une métrique
+            Measure the effect of a data cleaning: Mesurer l'effet d'un nettoyage
             FAQ: FAQ
   - mkdocstrings:
       handlers:
@@ -99,4 +100,5 @@ nav:
   - Guides:
       - Classification or regression?: guides/task.md
       - Choosing a metric: guides/metrics.md
+      - Measure the effect of a data cleaning: guides/cleaning.md
   - FAQ: faq.md
