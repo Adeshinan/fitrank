@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-21
+
+Tools to study wrong labels: score every model on a test set of your own,
+measure how much two rankings agree, get out-of-fold probabilities, and
+compare raw and calibrated classifiers, with a notebook and a guide.
+
 ### Added
 
 - `evaluation.test_data` (YAML) and `Benchmark(test_data=...)` (a DataFrame or
@@ -49,6 +55,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cross-validation scores on noisy labels, rows removed by mistake).
 - `scipy` is now a declared dependency (it was already installed with
   scikit-learn).
+
+### Compatibility
+
+- No existing behaviour changes. Every new feature is opt-in: a config
+  that runs with 1.1.2 gives the same leaderboard, the same files and the
+  same `config.yaml` with 1.2.0. A non-regression suite (golden
+  leaderboards, the public API and the command-line options recorded with
+  1.1.2) checks it in CI.
+- Supported versions are unchanged: Python 3.10 to 3.13,
+  scikit-learn 1.4 or later. A multiclass `neg_brier_score` needs
+  scikit-learn 1.7 or later.
 
 ## [1.1.2] - 2026-11-11
 
@@ -181,7 +198,8 @@ data from a single YAML file.
 
 - Package skeleton published to reserve the `fitrank` name on PyPI.
 
-[Unreleased]: https://github.com/Adeshinan/fitrank/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/Adeshinan/fitrank/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Adeshinan/fitrank/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/Adeshinan/fitrank/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/Adeshinan/fitrank/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Adeshinan/fitrank/compare/v1.0.0...v1.1.0
