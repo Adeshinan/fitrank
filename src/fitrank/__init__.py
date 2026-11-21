@@ -7,7 +7,7 @@ from fitrank.reduction import register_reduction
 from fitrank.registry import register_model
 from fitrank.results import Results, load_model
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 
 __all__ = [
     "Benchmark",
